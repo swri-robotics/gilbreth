@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package>
+  <name>gilbreth_gazebo</name>
+  <version>0.0.0</version>
+  <description>Constains configuration files and code to supplement the gazebo simulation</description>
+  <maintainer email="jrgnichodeve@gmail.com">Jorge Nicho</maintainer>
+  <license>BSD</license>
+  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+  </export>
+</package>
