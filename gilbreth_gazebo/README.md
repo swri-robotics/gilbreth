@@ -34,10 +34,8 @@ cd ~/catkin_ws
 catkin_make
 source devel/setup.bash
 ```
-Setup the Gazebo environment path
+Setup the Gazebo environment path. Add the following line into .bashrc file
 ```
-Add the following line into .bashrc file
-
 export GAZEBO_MODEL_PATH=`Yout Path to gilbreth_gazebo Package`/models
 ```
 ## Running the testing environment
