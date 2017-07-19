@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="simple_arm_vacuum_gripper">
+
+      <!-- The arm -->
+      <include>
+        <uri>model://simple_arm</uri>
+      </include>
+
+      <!-- The vacuum gripper -->
+      <model name="vacuum_gripper">
+        <include>
+          <uri>model://vacuum_gripper</uri>
+          <pose>1.6 0 0.99 0 0 0</pose>
+        </include>
+
+        <!-- Load the plugin to control the vacuum gripper-->
+        <plugin name="ros_vacuum_gripper" filename='libROSVacuumGripperPlugin.so'>
+          <grasp_check>
+            <detach_steps>40</detach_steps>
+            <attach_steps>2</attach_steps>
+            <min_contact_count>1</min_contact_count>
+          </grasp_check>
+          <suction_cup_link>
+            simple_arm_vacuum_gripper::vacuum_gripper::vacuum_gripper::suction_cup
+          </suction_cup_link>
+
+          <!-- The gripper will drop the following objects -->
+          <drops>
+            <drop_region>
+              <min>-10 -10 0</min>
+              <max>10 10 2.5</max>
+            </drop_region>
+
+            <object>
+              <type>beer</type>
+              <destination>0 0 0.2 0 0 0</destination>
+            </object>
+          </drops>
+
+          <!-- ROS -->
+          <robot_namespace>ariac</robot_namespace>
+          <control_topic>gripper/control</control_topic>
+          <state_topic>gripper/state</state_topic>
+        </plugin>
+      </model>
+
+      <!-- Attach the gripper to the arm -->
+      <joint name="arm_gripper_joint" type="revolute">
+        <parent>simple_arm::arm_wrist_roll</parent>
+        <child>vacuum_gripper::suction_cup</child>
+        <axis>
+          <limit>
+            <lower>0</lower>
+            <upper>0</upper>
+          </limit>
+          <xyz>0 0 1</xyz>
+          <use_parent_model_frame>true</use_parent_model_frame>
+        </axis>
+      </joint>
+
+    </model>
+</sdf>

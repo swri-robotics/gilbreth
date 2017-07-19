@@ -5,12 +5,34 @@
   <description>Constains configuration files and code to supplement the gazebo simulation</description>
   <maintainer email="jrgnichodeve@gmail.com">Jorge Nicho</maintainer>
   <license>BSD</license>
-  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
 
+  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+  <author email="yz6me@virginia.edu">Yizhe Zhang</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
+  <build_depend>gazebo_ros</build_depend>
+  <build_depend>gazebo_plugin</build_depend>
+ 
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
 
+  <build_depend>std_msgs</build_depend>
+  <build_depend>std_srvs</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>message_generation</build_depend>
+  
+  <run_depend>gazebo_ros</run_depend>
+  <run_depend>gazebo_plugin</run_depend>
+  <run_depend>gazebo_ros_control</run_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>std_srvs</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>xacro</run_depend>
+  <run_depend>tf</run_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
   </export>

@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro"
+       name="gear" >
+
+  <!-- include the arm xacro -->
+  <xacro:include filename="$(find osrf_gear)/launch/ur10/ur10.urdf.xacro" />
+  <xacro:property name="wrist_link" value="wrist_3_link" />
+
+  <!-- vacuum gripper -->
+  <xacro:include filename="$(find osrf_gear)/launch/vacuum_gripper/vacuum_gripper.urdf.xacro" />
+
+  <xacro:create_vacuum_gripper wrist_link="${wrist_link}" >
+    <drops_info>
+    </drops_info>
+  </xacro:create_vacuum_gripper>
+
+  <!-- linear arm actuator -->
+  <xacro:include filename="$(find osrf_gear)/launch/linear_arm_actuator/linear_arm_actuator.urdf.xacro" />
+
+  <xacro:create_linear_arm_actuator base_link="base_link" />
+
+  <!-- world link -->
+  <link name="world" />
+
+  <joint name="world_joint" type="fixed">
+    <parent link="world" />
+    <child link="linear_arm_actuator" />
+    <origin xyz="0.3 0.0 0.9" rpy="0.0 0.0 0.0" />
+  </joint>
+
+
+  <!-- sensor links and fixed joints -->
+
+  <!-- a break_beam type sensor in the frame break_beam_frame -->
+  <link name="break_beam_frame" />
+  <joint name="break_beam_joint" type="fixed">
+    <parent link="world" />
+    <child link="break_beam_frame" />
+    <origin xyz="1.6 3.5 0.91" rpy="0.0 0.0 3.14159265359" />
+  </joint>
+  <!-- a bin in the frame bin8_frame -->
+  <link name="bin8_frame" />
+  <joint name="bin8_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin8_frame" />
+    <origin xyz="-0.3 0.995 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- a bin in the frame bin5_frame -->
+  <link name="bin5_frame" />
+  <joint name="bin5_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin5_frame" />
+    <origin xyz="-0.3 -1.33 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- a bin in the frame bin4_frame -->
+  <link name="bin4_frame" />
+  <joint name="bin4_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin4_frame" />
+    <origin xyz="-1.0 0.995 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- a bin in the frame bin7_frame -->
+  <link name="bin7_frame" />
+  <joint name="bin7_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin7_frame" />
+    <origin xyz="-0.3 0.23 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- a bin in the frame bin6_frame -->
+  <link name="bin6_frame" />
+  <joint name="bin6_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin6_frame" />
+    <origin xyz="-0.3 -0.535 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- a bin in the frame bin1_frame -->
+  <link name="bin1_frame" />
+  <joint name="bin1_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin1_frame" />
+    <origin xyz="-1.0 -1.33 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- a bin in the frame bin3_frame -->
+  <link name="bin3_frame" />
+  <joint name="bin3_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin3_frame" />
+    <origin xyz="-1.0 0.23 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- a bin in the frame bin2_frame -->
+  <link name="bin2_frame" />
+  <joint name="bin2_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin2_frame" />
+    <origin xyz="-1.0 -0.535 0.72" rpy="0 0 1.5708" />
+  </joint>
+  <!-- agv load point frames -->
+  <link name="agv1_load_point_frame" />
+  <joint name="agv1_load_point_joint" type="fixed">
+    <parent link="world" />
+    <child link="agv1_load_point_frame" />
+    <origin xyz="0.3 3.3 0.75" rpy="0 0 3.1415" />
+  </joint>
+  <link name="agv2_load_point_frame" />
+  <joint name="agv2_load_point_joint" type="fixed">
+    <parent link="world" />
+    <child link="agv2_load_point_frame" />
+    <origin xyz="0.3 -3.3 0.75" rpy="0 0 0" />
+  </joint>
+  <link name="belt_frame" />
+  <joint name="belt_joint" type="fixed">
+    <parent link="world" />
+    <child link="belt_frame" />
+    <origin xyz="1.24 0.15 0.91" rpy="0 0 0" />
+  </joint>
+
+
+  <!-- plugin to spawn gazebo scene data into the moveit scene -->
+  <!--
+  <gazebo>
+    <plugin filename="libgazebo_ros_moveit_planning_scene.so" name="gazebo_ros_moveit_planning_scene">
+      <topicName>/planning_scene</topicName>
+      <sceneName>workcell</sceneName>
+      <robotName>robot</robotName>
+      <updatePeriod>0.5</updatePeriod>
+    </plugin>
+  </gazebo>
+  -->
+
+</robot>

@@ -1,0 +1,299 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <world name="gilbreth">
+    <!-- Set the initial camera pose to be looking at the workspace. -->
+    <gui>
+      <camera name="user_camera">
+        <pose>-4.33 1.88 6.11 0 0.9 -0.27</pose>
+      </camera>
+    </gui>
+
+
+    <!-- Disable shadows. -->
+    <scene>
+      <shadows>false</shadows>
+    </scene>
+
+    <!-- A global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <!-- A directed light source -->
+    <light name="camera_spot_light" type='spot'>
+      <pose>-10 10 10 0 -1 -0.8</pose>
+      <diffuse>0.5 0.5 0.5 1</diffuse>
+      <specular>0.1 0.1 0.1 1</specular>
+      <direction>0 0 -1</direction>
+      <attenuation>
+        <range>20</range>
+        <constant>0.5</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <cast_shadows>0</cast_shadows>
+      <spot>
+        <inner_angle>0.6</inner_angle>
+        <outer_angle>1</outer_angle>
+        <falloff>1</falloff>
+      </spot>
+    </light>
+
+	<!-- the kinect camera-->
+	<include>
+	  <uri>model://kinect_robot</uri>
+	  <pose>1.21 3.0 1.66 0 1.57 0</pose> 
+	</include>
+
+    <!-- the workcell -->
+    <include>
+      <uri>model://workcell_gilbreth</uri>
+      <pose>0 0 0 0 0 1.57</pose>
+    </include>
+
+	<!-- the workcell bins-->
+    <include>
+      <name>bin1</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-1.0 -1.33 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <name>bin2</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-1.0 -0.535 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <name>bin3</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-1.0 0.23 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <name>bin4</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-1.0 0.995 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <name>bin5</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-0.3 -1.33 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <name>bin6</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-0.3 -0.535 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <name>bin7</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-0.3 0.23 0 0 0 1.5708</pose>
+    </include>
+    <include>
+      <name>bin8</name>
+      <uri>model://workcell_bin</uri>
+      <pose>-0.3 0.995 0 0 0 1.5708</pose>
+    </include>
+
+    <!-- a break beam sensor called break_beam -->
+    <model name="break_beam">
+      <pose>1.6 3.5 0.91 0.0 0.0 3.14159265359</pose>
+      <link name="link">
+        <sensor name="break_beam" type="ray">
+          <pose>0.025 0 0 0 0 0</pose>
+          <plugin name="proximity_ray_plugin" filename="libROSProximityRayPlugin.so" >
+            <robotNamespace>gilbreth</robotNamespace>
+            <time_delay>0.05</time_delay><!-- this modifies the update rate of the ray sensor -->
+          </plugin>
+          <ray>
+            <range>
+              <min>0.0</min>
+              <max>1.0</max> <!-- this represents the distance at which the reflector's placed. max 12m -->
+              <resolution>0.001</resolution>
+            </range>
+
+            <!-- nothing below this line really needs to be modified upon change of sensor model -->
+
+            <scan>
+              <horizontal>
+                <samples>1</samples>
+                <resolution>1</resolution>
+                <min_angle>0</min_angle>
+                <max_angle>0</max_angle>
+              </horizontal>
+            </scan>
+            <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.001</stddev>
+            </noise>
+          </ray>
+
+          <always_on>1</always_on>
+          <visualize>true</visualize>
+        </sensor>
+        <gravity>false</gravity>
+        <inertial>
+          <mass>0.1</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <mesh>
+              <uri>model://hokuyo/meshes/hokuyo.dae</uri>
+            </mesh>
+          </geometry>
+        </visual>
+        <collision name="collision">
+          <geometry>
+            <mesh>
+              <uri>model://hokuyo/meshes/hokuyo.dae</uri>
+            </mesh>
+          </geometry>
+        </collision>
+      </link>
+      <static>true</static>
+    </model>
+
+
+    <!-- an invisible conveyor belt -->
+    <model name="conveyor_belt">
+
+      <model name="conveyor_belt_fixed">
+        <static>true</static>
+        <pose>1.21 5 0.8126 0 0 -1.57079</pose>
+        <link name="link">
+          <pose>0 0 0 0 0 0</pose>
+        </link>
+      </model>
+
+      <model name="conveyor_belt_moving">
+        <static>false</static>
+        <pose>1.21 -2 0.8126 0 0 -1.57079</pose>
+        <link name="belt">
+          <pose>-5 0 0 0 0 0</pose>
+          <inertial>
+            <inertia>
+              <ixx>3.8185</ixx>
+              <ixy>0</ixy>
+              <ixz>0</ixz>
+              <iyy>1781.5</iyy>
+              <iyz>0</iyz>
+              <izz>1784.72</izz>
+            </inertia>
+            <mass>100</mass>
+          </inertial>
+          <!--Uncomment for debugging -->
+          <!--
+          <visual name="belt_visual">
+            <geometry>
+              <box>
+                <size>14.62206 0.65461 0.18862</size>
+              </box>
+            </geometry>
+          </visual>
+          -->
+          <collision name="belt_collision">
+            <geometry>
+              <box>
+                <size>14.62206 0.65461 0.18862</size>
+              </box>
+            </geometry>
+            <surface>
+              <friction>
+                <ode>
+                  <mu>1.0</mu>
+                  <mu2>1.0</mu2>
+                </ode>
+                <torsional>
+                  <coefficient>1000.0</coefficient>
+                  <patch_radius>0.1</patch_radius>
+                </torsional>
+              </friction>
+            </surface>
+          </collision>
+        </link>
+      </model>
+
+      <joint name="belt_joint" type="prismatic">
+        <parent>conveyor_belt_fixed::link</parent>
+        <child>conveyor_belt_moving::belt</child>
+        <axis>
+          <xyz>1 0 0</xyz>
+          <limit>
+            <lower>0</lower>
+            <upper>1.0</upper>
+          </limit>
+        </axis>
+      </joint>
+
+      <plugin name="conveyor_belt_plugin" filename="libROSConveyorBeltPlugin.so">
+        <robot_namespace>/ariac</robot_namespace>
+        <population_rate_modifier_topic>/ariac/population/rate_modifier</population_rate_modifier_topic>
+        <link>conveyor_belt::conveyor_belt_moving::belt</link>
+        <power>0</power>
+      </plugin>
+    </model>
+
+    <!-- Populate the bins -->
+
+    <!-- Populate the conveyor belt -->
+    <plugin filename="libROSPopulationPlugin.so" name="populate_conveyor">
+      <activation_topic>/ariac/populate_belt</activation_topic>
+      <rate_modifier_topic>/ariac/population/rate_modifier</rate_modifier_topic>
+      <control_topic>/ariac/population/control</control_topic>
+      <state_topic>/ariac/population/state</state_topic>
+      <loop_forever>true</loop_forever>
+      <frame>conveyor_belt::conveyor_belt_fixed</frame>
+      <object_sequence>
+          <object>
+          <time>3.0</time>
+          <type>piston_rod_part</type>
+          <pose>0.0 0.0 0.1 0.0 0.0 1.57079632679</pose>
+        </object>
+            <object>
+          <time>6.0</time>
+          <type>part4</type>
+          <pose>0.0 0.0 0.1 0.0 0.0 1.57079632679</pose>
+        </object>
+        </object_sequence>
+      <update_rate>10</update_rate>
+    </plugin>
+
+    <!-- The NIST-ARIAC task manager -->
+    <plugin filename="libROSAriacTaskManagerPlugin.so" name="task_manager">
+      <robot_namespace>ariac</robot_namespace>
+      <competition_time_limit>500</competition_time_limit>
+      <start_competition_service_name>/ariac/start_competition</start_competition_service_name>
+      <end_competition_service_name>/ariac/end_competition</end_competition_service_name>
+      <population_activate_topic>/ariac/populate_belt</population_activate_topic>
+      <conveyor_control_topic>/ariac/conveyor/control</conveyor_control_topic>
+      <submit_tray_service_name>/ariac/submit_tray</submit_tray_service_name>
+      <material_locations_service_name>/ariac/material_locations</material_locations_service_name>
+      <orders_topic>/ariac/orders</orders_topic>
+      <material_locations>
+        <material>
+          <type>piston_rod_part</type>
+          <location>
+            <storage_unit>belt</storage_unit>
+          </location>
+        </material>
+        <material>
+          <type>part4</type>
+          <location>
+            <storage_unit>belt</storage_unit>
+          </location>
+        </material>
+        <material>
+          <type>tray</type>
+          <location>
+            <storage_unit>agv1_load_point</storage_unit>
+          </location>
+          <location>
+            <storage_unit>agv2_load_point</storage_unit>
+          </location>
+        </material>
+      </material_locations>
+
+    </plugin>
+
+
+  </world>
+</sdf>
