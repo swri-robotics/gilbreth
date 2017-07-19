@@ -1,0 +1,6 @@
+<launch>
+
+  <!-- Show in Rviz   -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gilbreth_gazebo)/rviz/gilbreth_camera.rviz"/>
+
+</launch>

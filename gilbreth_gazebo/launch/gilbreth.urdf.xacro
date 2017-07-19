@@ -3,11 +3,11 @@
        name="gear" >
 
   <!-- include the arm xacro -->
-  <xacro:include filename="$(find osrf_gear)/launch/ur10/ur10.urdf.xacro" />
+  <xacro:include filename="$(find gilbreth_gazebo)/launch/ur10/ur10.urdf.xacro" />
   <xacro:property name="wrist_link" value="wrist_3_link" />
 
   <!-- vacuum gripper -->
-  <xacro:include filename="$(find osrf_gear)/launch/vacuum_gripper/vacuum_gripper.urdf.xacro" />
+  <xacro:include filename="$(find gilbreth_gazebo)/launch/vacuum_gripper/vacuum_gripper.urdf.xacro" />
 
   <xacro:create_vacuum_gripper wrist_link="${wrist_link}" >
     <drops_info>
@@ -15,7 +15,7 @@
   </xacro:create_vacuum_gripper>
 
   <!-- linear arm actuator -->
-  <xacro:include filename="$(find osrf_gear)/launch/linear_arm_actuator/linear_arm_actuator.urdf.xacro" />
+  <xacro:include filename="$(find gilbreth_gazebo)/launch/linear_arm_actuator/linear_arm_actuator.urdf.xacro" />
 
   <xacro:create_linear_arm_actuator base_link="base_link" />
 
@@ -38,6 +38,15 @@
     <child link="break_beam_frame" />
     <origin xyz="1.6 3.5 0.91" rpy="0.0 0.0 3.14159265359" />
   </joint>
+
+  <!-- a kinect camera in the frame kinect_camera_frame -->
+  <link name="camera_link" />
+  <joint name="camera_link" type="fixed">
+    <parent link="world"/>
+	<child link="camera_link" />
+	<origin xyz="1.21 3.0 1.66" rpy="3.14159265359 0 -1.5708" />
+  </joint>
+  
   <!-- a bin in the frame bin8_frame -->
   <link name="bin8_frame" />
   <joint name="bin8_joint" type="fixed">

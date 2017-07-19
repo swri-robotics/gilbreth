@@ -42,7 +42,7 @@
 	<!-- the kinect camera-->
 	<include>
 	  <uri>model://kinect_robot</uri>
-	  <pose>1.21 3.0 1.66 0 1.57 0</pose> 
+	  <pose>1.21 3.0 1.86 0 1.57 0</pose> 
 	</include>
 
     <!-- the workcell -->
