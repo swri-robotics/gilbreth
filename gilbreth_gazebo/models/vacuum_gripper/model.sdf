@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+  <model name="vacuum_gripper">
+    <!-- The suction cup of a vacuum gripper -->
+    <link name="suction_cup">
+      <pose>0 0 0.005 0 0 0</pose>
+      <inertial>
+        <pose>0 0 0 0 0 0</pose>
+        <inertia>
+          <ixx>0.0000063</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.0000063</iyy>
+          <iyz>0</iyz>
+          <izz>0.000025</izz>
+        </inertia>
+        <mass>0.01</mass>
+      </inertial>
+
+      <collision name="collision_base_gripper">
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.01</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name="visual_base_gripper">
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.01</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <script>
+            <uri>file://media/materials/scripts/gazebo.material</uri>
+            <name>Gazebo/Black</name>
+          </script>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="proximity_sick_wl9l-3">
+    <link name="link">
+      <sensor name="break_beam" type="ray">
+        <pose>0.025 0 0 0 0 0</pose>
+        <plugin name="proximity_ray_plugin" filename="libROSProximityRayPlugin.so" >
+          <robotNamespace>ariac</robotNamespace>
+          <time_delay>0.05</time_delay><!-- this modifies the update rate of the ray sensor -->
+        </plugin>
+        <ray>
+          <range>
+            <min>0.0</min>
+            <max>1.0</max> <!-- this represents the distance at which the reflector's placed. max 12m -->
+            <resolution>0.001</resolution>
+          </range>
+
+          <!-- nothing below this line really needs to be modified upon change of sensor model -->
+
+          <scan>
+            <horizontal>
+              <samples>1</samples>
+              <resolution>1</resolution>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
+            </horizontal>
+          </scan>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.001</stddev>
+          </noise>
+        </ray>
+
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
+      <gravity>false</gravity>
+      <inertial>
+        <mass>0.1</mass>
+      </inertial>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://hokuyo/meshes/hokuyo.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>model://hokuyo/meshes/hokuyo.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

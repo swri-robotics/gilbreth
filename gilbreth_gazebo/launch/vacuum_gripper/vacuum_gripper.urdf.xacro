@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+<xacro:macro name="create_vacuum_gripper" params="wrist_link **drops_info">
+
+  <link name="vacuum_gripper_link">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <inertia ixx="0.0000063" ixy="0" ixz="0"
+               iyy="0.0000063" iyz="0"
+               izz="0.000025" />
+      <mass value="0.01" />
+    </inertial>
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0" />
+      <geometry>
+        <cylinder radius="0.05" length="0.01" />
+      </geometry>
+      <material name="SomeColor">
+        <color rgba="1.0 0.0 0.0 1.0"/>
+      </material>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.05" length="0.01"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="vacuum_gripper_joint" type="revolute">
+    <origin xyz="0 0.1 0" rpy="${90 * 0.0174533} 0 0" />
+    <axis xyz="0 0 1" />
+    <limit lower="0" upper="0" effort="0" velocity="0" />
+    <parent link="${wrist_link}" />
+    <child link="vacuum_gripper_link" />
+
+    <dynamics damping="0.0" friction="0.0"/>
+  </joint>
+
+  <gazebo reference="vacuum_gripper_link">
+    <material>Gazebo/Black</material>
+  </gazebo>
+
+  <gazebo>
+    <plugin name="ros_vacuum_gripper" filename="libROSVacuumGripperPlugin.so">
+      <grasp_check>
+        <detach_steps>40</detach_steps>
+        <attach_steps>1</attach_steps>
+        <min_contact_count>1</min_contact_count>
+      </grasp_check>
+
+      <xacro:insert_block name="drops_info" />
+
+      <suction_cup_link>vacuum_gripper_link</suction_cup_link>
+
+      <!-- ROS -->
+      <robot_namespace>/gilbreth</robot_namespace>
+      <control_topic>gripper/control</control_topic>
+      <state_topic>gripper/state</state_topic>
+    </plugin>
+  </gazebo>
+
+</xacro:macro>
+
+</robot>
