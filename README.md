@@ -8,6 +8,8 @@ robotic product handling simulation
   ```
   cd $(catkin locate -s)
   git clone https://github.com/jrgnicho/pysdf.git
+  cd ..
+  catkin build
 ```
 
 2. Setup Global variables
@@ -21,3 +23,11 @@ robotic product handling simulation
   roscd gilbreth_gazebo
   rosrun pysdf sdf2urdf.py models/environment/model.sdf my_urdf.urdf
   ```
+  
+ 4. View URDF
+ ```
+ roslaunch urdf_tutorial display.launch model:=my_urdf.urdf
+ ```
+
+### Run Gazebo Simulation
+  Follow the instructions [here](gilbreth_gazebo/README.md)
