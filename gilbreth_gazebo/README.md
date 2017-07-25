@@ -26,7 +26,7 @@ cd ~/catkin_ws/src
 ```
 Third,clone gilbreth_gazebo and gilbreth_description folder:
 ```
-git clone https://github.com/alex07zzz/gilbreth.git
+git clone https://github.com/swri-robotics/gilbreth.git
 ```
 Make the files
 ```
@@ -44,7 +44,7 @@ Roslaunch the gazebo environment:
 ```
 cd ~/catkin_ws
 source devel/setup.bash
-roslaunch gilbreth_gazebo gilbreth.launch
+rosrun gilbreth_gazebo run_gilbreth_test_sim.bash
 ```
 
 ## Changelog
