@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:macro name="gilbreth_gazebo" params="">
+
+    <!-- robot associated gazebo element -->
+    <gazebo>
+      <plugin name="ros_vacuum_gripper" filename="libROSVacuumGripperPlugin.so">
+        <grasp_check>
+          <detach_steps>40</detach_steps>
+          <attach_steps>1</attach_steps>
+          <min_contact_count>1</min_contact_count>
+        </grasp_check>
+
+        <xacro:insert_block name="drops_info">
+          <drops_info/>
+        </xacro:insert_block>
+
+        <suction_cup_link>${prefix}tool0</suction_cup_link>
+
+        <robot_namespace>/gilbreth</robot_namespace>
+        <control_topic>gripper/control</control_topic>
+        <state_topic>gripper/state</state_topic>
+      </plugin>
+    </gazebo>
+
+
+  </xacro:macro>
+</robot>
