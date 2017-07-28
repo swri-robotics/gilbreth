@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: gilbreth_support
+    relative_path: urdf/gilbreth.xacro
+  SRDF:
+    relative_path: config/gilbreth.srdf
+  CONFIG:
+    author_name: Michael Ripperger
+    author_email: michael.ripperger@swri.org
+    generated_timestamp: 1501194419

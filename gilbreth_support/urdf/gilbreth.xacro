@@ -1,0 +1,145 @@
+<?xml version="1.0" ?>
+<robot name="gilbreth" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- include the robot xacro -->
+  <xacro:include filename="$(find ur_description)/urdf/ur10.urdf.xacro" />
+  <xacro:ur10_robot prefix="robot_" joint_limited="false"/>
+
+  <!-- vacuum gripper -->
+  <xacro:property name="vacuum_gripper" value="vacuum_gripper_" />
+  <xacro:include filename="$(find gilbreth_support)/urdf/vacuum_gripper/vacuum_gripper.xacro"/>
+  <xacro:vacuum_gripper prefix="vacuum_gripper_"/>
+
+  <!-- linear arm actuator -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/linear_actuator/linear_actuator.xacro" />
+  <xacro:linear_actuator prefix="linear_actuator_"/>
+
+  <!-- Links -->
+  <link name="world" />
+  <link name="break_beam_frame" />
+  <link name="camera_link" />
+  <link name="bin1_frame" />
+  <link name="bin2_frame" />
+  <link name="bin3_frame" />
+  <link name="bin4_frame" />
+  <link name="bin5_frame" />
+  <link name="bin6_frame" />
+  <link name="bin7_frame" />
+  <link name="bin8_frame" />
+  <link name="agv1_load_point_frame" />
+  <link name="agv2_load_point_frame" />
+  <link name="belt_frame" />
+
+  <!-- Joints -->
+  <joint name="world_to_linear_actuator" type="fixed">
+    <parent link="world" />
+    <child link="linear_actuator_base_link" />
+    <origin xyz="0.3 0.0 0.9" rpy="0.0 0.0 0.0" />
+  </joint>
+
+  <joint name="robot_to_actuator_carriage" type="fixed">
+    <parent link="linear_actuator_carriage" />
+    <child link="robot_base_link" />
+  </joint>
+
+  <joint name="vacuum_gripper_to_robot" type="fixed">
+    <parent link="robot_tool0" />
+    <child link="vacuum_gripper_base_link" />
+  </joint>
+
+  <!-- a break_beam type sensor in the frame break_beam_frame -->
+  <joint name="break_beam_joint" type="fixed">
+    <parent link="world" />
+    <child link="break_beam_frame" />
+    <origin xyz="1.6 3.5 0.91" rpy="0 0 ${pi}" />
+  </joint>
+
+  <!-- a kinect camera in the frame kinect_camera_frame -->
+  <joint name="camera_link" type="fixed">
+    <parent link="world"/>
+    <child link="camera_link" />
+    <origin xyz="1.21 3.0 1.66" rpy="${pi} 0 -${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin1_frame -->
+  <joint name="bin1_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin1_frame" />
+    <origin xyz="-1.0 -1.33 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin2_frame -->
+  <joint name="bin2_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin2_frame" />
+    <origin xyz="-1.0 -0.535 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin3_frame -->
+  <joint name="bin3_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin3_frame" />
+    <origin xyz="-1.0 0.23 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin4_frame -->
+  <joint name="bin4_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin4_frame" />
+    <origin xyz="-1.0 0.995 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin5_frame -->
+  <joint name="bin5_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin5_frame" />
+    <origin xyz="-0.3 -1.33 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin6_frame -->
+  <joint name="bin6_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin6_frame" />
+    <origin xyz="-0.3 -0.535 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin7_frame -->
+  <joint name="bin7_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin7_frame" />
+    <origin xyz="-0.3 0.23 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- a bin in the frame bin8_frame -->
+  <joint name="bin8_joint" type="fixed">
+    <parent link="world" />
+    <child link="bin8_frame" />
+    <origin xyz="-0.3 0.995 0.72" rpy="0 0 ${pi/2}" />
+  </joint>
+
+  <!-- agv load point frames -->
+  <joint name="agv1_load_point_joint" type="fixed">
+    <parent link="world" />
+    <child link="agv1_load_point_frame" />
+    <origin xyz="0.3 3.3 0.75" rpy="0 0 ${pi}" />
+  </joint>
+
+  <joint name="agv2_load_point_joint" type="fixed">
+    <parent link="world" />
+    <child link="agv2_load_point_frame" />
+    <origin xyz="0.3 -3.3 0.75" rpy="0 0 0" />
+  </joint>
+
+  <joint name="belt_joint" type="fixed">
+    <parent link="world" />
+    <child link="belt_frame" />
+    <origin xyz="1.24 0.15 0.91" rpy="0 0 0" />
+  </joint>
+
+  <gazebo>
+    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+      <robotNamespace>/</robotNamespace>
+    </plugin>
+  </gazebo>
+
+</robot>
