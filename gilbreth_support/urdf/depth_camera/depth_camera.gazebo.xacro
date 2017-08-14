@@ -7,7 +7,7 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
-    <gazebo reference="${prefix}focal_point">
+    <gazebo reference="${prefix}camera_link">
       <material>Gazebo/Grey</material>
 
       <sensor type="depth" name="${camera_name}">
@@ -25,17 +25,13 @@
           </clip>
         </camera>
         <plugin name="${prefix}_controller" filename="libgazebo_ros_openni_kinect.so">
-          <baseline>0.2</baseline>
+          <cameraName>${camera_name}</cameraName>
           <alwaysOn>true</alwaysOn>
           <updateRate>1.0</updateRate>
-          <cameraName>${camera_name}</cameraName>
-          <imageTopicName>/${camera_name}/depth/image_raw</imageTopicName>
-          <cameraInfoTopicName>/${camera_name}/depth/camera_info</cameraInfoTopicName>
-          <depthImageTopicName>/${camera_name}/depth/image_raw</depthImageTopicName>
-          <depthImageInfoTopicName>/${camera_name}/depth/camera_info</depthImageInfoTopicName>
-          <pointCloudTopicName>/${camera_name}/depth/points</pointCloudTopicName>
-          <frameName>${prefix}focal_point</frameName>
           <pointCloudCutoff>0.5</pointCloudCutoff>
+          <baseline>0.2</baseline>
+          <focalLength>0</focalLength>
+          <hackBaseline>0</hackBaseline>
           <distortionK1>0.00000001</distortionK1>
           <distortionK2>0.00000001</distortionK2>
           <distortionK3>0.00000001</distortionK3>
@@ -44,8 +40,13 @@
           <CxPrime>0</CxPrime>
           <Cx>0</Cx>
           <Cy>0</Cy>
-          <focalLength>0</focalLength>
-          <hackBaseline>0</hackBaseline>
+
+          <imageTopicName>/${camera_name}/depth/image_raw</imageTopicName>
+          <cameraInfoTopicName>/${camera_name}/depth/camera_info</cameraInfoTopicName>
+          <depthImageTopicName>/${camera_name}/depth/image_raw</depthImageTopicName>
+          <depthImageInfoTopicName>/${camera_name}/depth/camera_info</depthImageInfoTopicName>
+          <pointCloudTopicName>/${camera_name}/depth/points</pointCloudTopicName>
+          <frameName>${prefix}camera_link_optical</frameName>
         </plugin>
       </sensor>
     </gazebo>

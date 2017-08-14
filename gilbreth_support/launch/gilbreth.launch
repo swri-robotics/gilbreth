@@ -9,6 +9,7 @@
 
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find gilbreth_support)/worlds/gilbreth.world"/>
     <arg name="debug" value="$(arg debug)" />
     <arg name="gui" value="$(arg gui)" />
     <arg name="paused" value="$(arg paused)"/>
@@ -18,6 +19,9 @@
 
   <!-- Load the URDF into the ROS Parameter Server -->
   <include file="$(find gilbreth_moveit_config)/launch/move_group.launch"/>
+<!--  <include file="$(find gilbreth_moveit_config)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>-->
 
   <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
   <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" args="-urdf -model gilbreth -param robot_description"/>

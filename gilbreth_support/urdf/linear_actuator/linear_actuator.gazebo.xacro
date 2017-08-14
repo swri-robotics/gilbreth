@@ -9,9 +9,9 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
-    <gazebo reference="${prefix}carriage_joint">
+<!--    <gazebo reference="${prefix}carriage_joint">
       <implicitSpringDamper>1</implicitSpringDamper>
-    </gazebo>
+    </gazebo>-->
 
     <transmission name="${prefix}transmission">
       <type>transmission_interface/SimpleTransmission</type>
