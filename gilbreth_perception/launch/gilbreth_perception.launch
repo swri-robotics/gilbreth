@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<launch>
+
+<group>
+    <node pkg="gilbreth_perception" name="tf_publisher" type="tf_publisher" args="0.70711 -0.70711 0 0"/>
+  </group>
+
+  
+  <group>
+    <remap from="scene_point_cloud" to="/camera/depth/points"/>
+    <node pkg="gilbreth_perception" name="segmentation_node" type="segmentation_node" args="--down_sample 0.008"/>
+  </group>
+
+  <group>
+    <remap from="segmentation_result" to="segmentation_result"/>
+    <node pkg="gilbreth_perception" name="recognition_node" type="recognition_node" args="/home/lianjunli/PCL_test/sample_pcd/model_list.txt --descr_rad 0.08 --down_sample 0.008 --min_sample_distance 0.025 --max_correspondence_distance 0.25 --nr_iterations 40">
+       <rosparam command="load" file="$(find gilbreth_perception)/config/model_list.yaml"/>
+    </node>
+  </group>
+
+
+</launch>
+

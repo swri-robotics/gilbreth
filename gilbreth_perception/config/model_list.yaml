@@ -1,0 +1,6 @@
+part_list:
+ disk: /home/lianjunli/workspace/src/gilbreth_perception/model/disk.pcd
+ gear: /home/lianjunli/workspace/src/gilbreth_perception/model/gear.pcd
+ piston_rod: /home/lianjunli/workspace/src/gilbreth_perception/model/piston_rod.pcd
+
+
