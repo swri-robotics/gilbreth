@@ -7,7 +7,13 @@ project(gilbreth_perception)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  pcl_conversions
+  pcl_ros
+  roscpp
+  sensor_msgs
+  message_generation
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -43,11 +49,10 @@ find_package(catkin REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+ add_message_files(
+   FILES
+   ObjectDetection.msg
+ )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -64,10 +69,10 @@ find_package(catkin REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+ generate_messages(
+   DEPENDENCIES
+   sensor_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -100,9 +105,10 @@ find_package(catkin REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES gilbreth_perception
-#  CATKIN_DEPENDS other_catkin_pkg
+#  LIBRARIES my_pcl_tutorial
+#  CATKIN_DEPENDS pcl_conversion pcl_ros roscpp sensor_msgs
 #  DEPENDS system_lib
+CATKIN_DEPENDS message_runtime
 )
 
 ###########
@@ -112,10 +118,13 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/gilbreth_perception.cpp
+#   src/${PROJECT_NAME}/my_pcl_tutorial.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -126,7 +135,7 @@ catkin_package(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/gilbreth_perception_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/my_pcl_tutorial_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -183,10 +192,22 @@ catkin_package(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_gilbreth_perception.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_my_pcl_tutorial.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+
+add_executable(segmentation_node src/segmentation_node.cpp)
+target_link_libraries(segmentation_node ${catkin_LIBRARIES})
+
+add_executable(recognition_node src/recognition_node.cpp)
+target_link_libraries(recognition_node ${catkin_LIBRARIES})
+add_dependencies(recognition_node gilbreth_perception_generate_message_cpp)
+
+add_executable(tf_publisher src/tf_publisher.cpp)
+target_link_libraries(tf_publisher ${catkin_LIBRARIES})
+
