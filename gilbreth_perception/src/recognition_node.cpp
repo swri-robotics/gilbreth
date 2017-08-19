@@ -77,34 +77,36 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& cloud_msg,const tf::TransformL
 
 	parseCommandLine (argc, argv);
 
-	// set pickup point for models
-	std::vector<int> pick_point_indices;
-	pick_point_indices.push_back(137);
-	pick_point_indices.push_back(40);
-	pick_point_indices.push_back(48);
+	// Load model settings
+	XmlRpc::XmlRpcValue model_map;
+	std::map<std::string,float> pick_orientation;
+	std::string package_path;
+	ros::NodeHandle ph("~");
+	ph.getParam("part_list",model_map);
+	ph.getParam("pick_orientation",pick_orientation);
+	ph.getParam("package_path",package_path);
 
+	std::vector<int> pick_point_indices;
 	pcl::PointCloud<PointType>::Ptr scene (new pcl::PointCloud<PointType> ());
 	pcl::PointCloud<NormalType>::Ptr scene_normals (new pcl::PointCloud<NormalType> ());
 	pcl::PointCloud<pcl::FPFHSignature33>::Ptr scene_features (new pcl::PointCloud<pcl::FPFHSignature33> );
 	pcl::PassThrough<PointType> pass;
 	pcl::SACSegmentationFromNormals<PointType, pcl::Normal> seg;
 	pcl::search::KdTree<PointType>::Ptr tree (new pcl::search::KdTree<PointType> ());
-
-	//  Load models
 	std::vector<pcl::PointCloud<PointType>::Ptr> model_raw_list;
-	std::map<std::string, std::string> model_location_map;
 	std::vector<std::string> model_name;
-	ros::NodeHandle ph("~");
-	ph.getParam("part_list",model_location_map);
-	for(std::map<std::string, std::string>::iterator i=model_location_map.begin();i!=model_location_map.end();i++){
+	for(int i=0;i<model_map.size();i++){
 		pcl::PointCloud<PointType>::Ptr model_raw (new pcl::PointCloud<PointType> ());
-		if (pcl::io::loadPCDFile (i->second, *model_raw) < 0)
+		std::string model_path=model_map[i]["path"];
+
+		if (pcl::io::loadPCDFile (package_path + model_path, *model_raw) < 0)
 		{
 			std::cout << "Error loading model cloud." << std::endl;
 			return ;
 		}
 		model_raw_list.push_back (model_raw);
-		model_name.push_back(i->first);
+		model_name.push_back(model_map[i]["name"]);
+		pick_point_indices.push_back(model_map[i]["pick_point_index"]);
 
 	}
 
@@ -233,10 +235,10 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& cloud_msg,const tf::TransformL
 	data.pose.position.x=pick_points->points[0].x;
 	data.pose.position.y=pick_points->points[0].y;
 	data.pose.position.z=pick_points->points[0].z;
-	data.pose.orientation.x=0;
-	data.pose.orientation.y=1;
-	data.pose.orientation.z=0;
-	data.pose.orientation.w=0;
+	data.pose.orientation.x=pick_orientation["x"];
+	data.pose.orientation.y=pick_orientation["y"];
+	data.pose.orientation.z=pick_orientation["z"];
+	data.pose.orientation.w=pick_orientation["w"];
 	// Transform point to world coordination
 	sensor_point.point.x=data.pose.position.x;
 	sensor_point.point.y=data.pose.position.y;
@@ -248,20 +250,19 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& cloud_msg,const tf::TransformL
 	data_tf.pose.position.x=world_point.point.x;
 	data_tf.pose.position.y=world_point.point.y;
 	data_tf.pose.position.z=world_point.point.z;
-	data_tf.pose.orientation.x=0;
-	data_tf.pose.orientation.y=1;
-	data_tf.pose.orientation.z=0;
-	data_tf.pose.orientation.w=0;
-
+	data_tf.pose.orientation.x=pick_orientation["x"];
+	data_tf.pose.orientation.y=pick_orientation["y"];
+	data_tf.pose.orientation.z=pick_orientation["z"];
+	data_tf.pose.orientation.w=pick_orientation["w"];
 	data_tf.detection_time=cloud_msg->header.stamp;
 	data_tf.header.stamp=ros::Time::now();
 	data_tf.header.frame_id="world_frame";
 	pub_tf.publish(data_tf);
 
-	data.detection_time=cloud_msg->header.stamp;
-	data.header.stamp=ros::Time::now();
-	data.header.frame_id="sensor_frame";
-	pub.publish(data);
+	//data.detection_time=cloud_msg->header.stamp;
+	//data.header.stamp=ros::Time::now();
+	//data.header.frame_id="sensor_frame";
+	//pub.publish(data);
 
 }
 
@@ -283,7 +284,7 @@ main (int argc, char** argv)
 	ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2> ("segmentation_result", 100,boost::bind(cloud_cb, _1,boost::ref(listener), argc, argv));
 	// ROS publisher
 	pub_tf = nh.advertise<gilbreth_perception::ObjectDetection> ("recognition_result_world", 10);
-	pub = nh.advertise<gilbreth_perception::ObjectDetection > ("recognition_result_sensor", 10);
+	//pub = nh.advertise<gilbreth_perception::ObjectDetection > ("recognition_result_sensor", 10);
 
 	// Spin
 

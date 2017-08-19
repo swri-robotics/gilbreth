@@ -1,6 +1,15 @@
 part_list:
- disk: /home/lianjunli/workspace/src/gilbreth_perception/model/disk.pcd
- gear: /home/lianjunli/workspace/src/gilbreth_perception/model/gear.pcd
- piston_rod: /home/lianjunli/workspace/src/gilbreth_perception/model/piston_rod.pcd
-
-
+ - name: disk 
+   path: /model/disk.pcd
+   pick_point_index: 137
+ - name: gear
+   path: /model/gear.pcd
+   pick_point_index: 40
+ - name: piston_rod
+   path: /model/piston_rod.pcd
+   pick_point_index: 48
+pick_orientation:
+ x: 0
+ y: 1
+ z: 0
+ w: 0

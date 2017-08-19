@@ -15,6 +15,7 @@
     <remap from="segmentation_result" to="segmentation_result"/>
     <node pkg="gilbreth_perception" name="recognition_node" type="recognition_node" args="/home/lianjunli/PCL_test/sample_pcd/model_list.txt --descr_rad 0.08 --down_sample 0.008 --min_sample_distance 0.025 --max_correspondence_distance 0.25 --nr_iterations 40">
        <rosparam command="load" file="$(find gilbreth_perception)/config/model_list.yaml"/>
+       <param name="package_path" value="$(find gilbreth_perception)"/>
     </node>
   </group>
 
