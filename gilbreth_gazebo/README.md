@@ -24,7 +24,7 @@ Second, go to src folder in your workspace:
 ```
 cd ~/catkin_ws/src
 ```
-Third,clone gilbreth_gazebo and gilbreth_description folder:
+Third,clone gilbreth_gazebo folder:
 ```
 git clone https://github.com/swri-robotics/gilbreth.git
 ```
@@ -36,7 +36,7 @@ source devel/setup.bash
 ```
 Setup the Gazebo environment path. Add the following line into .bashrc file
 ```
-export GAZEBO_MODEL_PATH=`Yout Path to gilbreth_gazebo Package`/models
+export GAZEBO_MODEL_PATH=`Your Path to gilbreth_gazebo Package`/models
 ```
 ## Running the testing environment
 
