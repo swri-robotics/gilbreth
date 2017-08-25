@@ -69,28 +69,19 @@ void loadParameter() {
   visualizer = switch_map["visualizer"];
 }
 
-void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::TransformListener &listener, int argc, char **argv) {
-
+void loadModel(std::vector<std::vector<double> > &pick_pose, std::vector<std::string> &model_name,
+               std::vector<pcl::PointCloud<PointType>::Ptr> &model_list, std::vector<pcl::PointCloud<pcl::FPFHSignature33>::Ptr> &model_features_list) {
   // Load model settings
   XmlRpc::XmlRpcValue model_map;
-  std::vector<std::vector<double> > pick_pose;
   std::string package_path;
   ros::NodeHandle ph("~");
   ph.getParam("part_list", model_map);
   ph.getParam("package_path", package_path);
 
-  pcl::PointCloud<PointType>::Ptr scene(new pcl::PointCloud<PointType>());
-  pcl::PointCloud<NormalType>::Ptr scene_normals(new pcl::PointCloud<NormalType>());
-  pcl::PointCloud<pcl::FPFHSignature33>::Ptr scene_features(new pcl::PointCloud<pcl::FPFHSignature33>);
-  pcl::PassThrough<PointType> pass;
-  pcl::SACSegmentationFromNormals<PointType, pcl::Normal> seg;
-  pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree<PointType>());
   std::vector<pcl::PointCloud<PointType>::Ptr> model_raw_list;
-  std::vector<std::string> model_name;
   for (int i = 0; i < model_map.size(); i++) {
     pcl::PointCloud<PointType>::Ptr model_raw(new pcl::PointCloud<PointType>());
     std::string model_path = model_map[i]["path"];
-
     if (pcl::io::loadPCDFile(package_path + model_path, *model_raw) < 0) {
       std::cout << "Error loading model cloud." << std::endl;
       return;
@@ -105,13 +96,8 @@ void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::
     }
     pick_pose.push_back(pick_pose_sub);
   }
-
-  // Load scene
-  pcl::fromROSMsg(*cloud_msg, *scene);
-
   // Downsample models
   pcl::VoxelGrid<pcl::PointXYZ> sor;
-  std::vector<pcl::PointCloud<PointType>::Ptr> model_list;
   for (int i = 0; i < model_raw_list.size(); i++) {
     pcl::PointCloud<PointType>::Ptr model(new pcl::PointCloud<PointType>());
     sor.setInputCloud(model_raw_list[i]);
@@ -120,23 +106,11 @@ void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::
     model_list.push_back(model);
   }
 
-  //  Compute Feature
+  // Compute model feature
+  pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree<PointType>());
   pcl::NormalEstimationOMP<PointType, NormalType> norm_est;
   std::vector<pcl::PointCloud<NormalType>::Ptr> model_normals_list;
   pcl::FPFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> fpfh_est;
-  std::vector<pcl::PointCloud<pcl::FPFHSignature33>::Ptr> model_features_list;
-
-  norm_est.setSearchMethod(tree);
-  norm_est.setRadiusSearch(descr_rad);
-  norm_est.setInputCloud(scene);
-  norm_est.compute(*scene_normals);
-
-  fpfh_est.setSearchMethod(tree);
-  fpfh_est.setRadiusSearch(descr_rad);
-  fpfh_est.setInputCloud(scene);
-  fpfh_est.setInputNormals(scene_normals);
-  fpfh_est.compute(*scene_features);
-
   for (int i = 0; i < model_list.size(); i++) {
     pcl::PointCloud<NormalType>::Ptr model_normals(new pcl::PointCloud<NormalType>());
     norm_est.setRadiusSearch(descr_rad);
@@ -148,11 +122,41 @@ void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::
 
   for (int i = 0; i < model_list.size(); i++) {
     pcl::PointCloud<pcl::FPFHSignature33>::Ptr model_features(new pcl::PointCloud<pcl::FPFHSignature33>);
+    fpfh_est.setSearchMethod(tree);
+    fpfh_est.setRadiusSearch(descr_rad);
     fpfh_est.setInputCloud(model_list[i]);
     fpfh_est.setInputNormals(model_normals_list[i]);
     fpfh_est.compute(*model_features);
     model_features_list.push_back(model_features);
   }
+}
+
+void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::TransformListener &listener, int argc, char **argv,
+                   std::vector<std::vector<double> > &pick_pose, std::vector<std::string> &model_name,
+                   std::vector<pcl::PointCloud<PointType>::Ptr> &model_list, std::vector<pcl::PointCloud<pcl::FPFHSignature33>::Ptr> &model_features_list) {
+
+  pcl::PointCloud<PointType>::Ptr scene(new pcl::PointCloud<PointType>());
+  pcl::PointCloud<NormalType>::Ptr scene_normals(new pcl::PointCloud<NormalType>());
+  pcl::PointCloud<pcl::FPFHSignature33>::Ptr scene_features(new pcl::PointCloud<pcl::FPFHSignature33>);
+
+  // Load scene
+  pcl::fromROSMsg(*cloud_msg, *scene);
+
+  //  Compute Scene Feature
+  pcl::NormalEstimationOMP<PointType, NormalType> norm_est;
+  pcl::FPFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> fpfh_est;
+  pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree<PointType>());
+
+  norm_est.setSearchMethod(tree);
+  norm_est.setRadiusSearch(descr_rad);
+  norm_est.setInputCloud(scene);
+  norm_est.compute(*scene_normals);
+
+  fpfh_est.setSearchMethod(tree);
+  fpfh_est.setRadiusSearch(descr_rad);
+  fpfh_est.setInputCloud(scene);
+  fpfh_est.setInputNormals(scene_normals);
+  fpfh_est.compute(*scene_features);
 
   // ICP
   std::vector<pcl::PointIndices> recognized_indices;
@@ -168,9 +172,7 @@ void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::
   sac_ia_.setMinSampleDistance(min_sample_distance);
   sac_ia_.setMaxCorrespondenceDistance(max_correspondence_distance);
   sac_ia_.setMaximumIterations(nr_iterations);
-
   int min_index;
-
   sac_ia_.setInputTarget(scene);
   sac_ia_.setTargetFeatures(scene_features);
   results_temp.resize(model_list.size());
@@ -262,14 +264,19 @@ void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::
 }
 
 int main(int argc, char **argv) {
+  std::vector<std::vector<double> > pick_pose;
+  std::vector<std::string> model_name;
+  std::vector<pcl::PointCloud<PointType>::Ptr> model_list;
+  std::vector<pcl::PointCloud<pcl::FPFHSignature33>::Ptr> model_features_list;
   // define PCD file subscribed
   // Initialize ROS
   ros::init(argc, argv, "recognition_node");
   ros::NodeHandle nh;
   loadParameter();
+  loadModel(pick_pose, model_name, model_list, model_features_list);
   tf::TransformListener listener;
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, boost::bind(cloudCallBack, _1, boost::ref(listener), argc, argv));
+  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, boost::bind(cloudCallBack, _1, boost::ref(listener), argc, argv, pick_pose, model_name, model_list, model_features_list));
   // ROS publisher
   pub_tf = nh.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
   // Spin

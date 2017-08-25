@@ -5,4 +5,4 @@ parameters:
   max_correspondence_distance: 0.25
   nr_iterations: 40
 switches:
-  visualizer: false
+  visualizer: true
