@@ -1,0 +1,8 @@
+parameters:
+  descr_rad: 0.08
+  down_sample: 0.008
+  min_sample_distance: 0.025
+  max_correspondence_distance: 0.25
+  nr_iterations: 40
+switches:
+  visualizer: false

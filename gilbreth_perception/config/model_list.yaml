@@ -1,15 +1,10 @@
 part_list:
  - name: disk 
    path: /model/disk.pcd
-   pick_point_index: 137
+   pick_pose: [-0.3993, 0.2195, 1.1321, 0.0, 3.14159, 0.0] #[x,y,z,rx,ry,rz]
  - name: gear
    path: /model/gear.pcd
-   pick_point_index: 40
+   pick_pose: [-0.001, 0.1286, 1.1783, 0.0, 3.14159, 0.0]
  - name: piston_rod
    path: /model/piston_rod.pcd
-   pick_point_index: 48
-pick_orientation:
- x: 0
- y: 1
- z: 0
- w: 0
+   pick_pose: [0.2678, 0.1312, 1.1829, 0.0, 3.14159, 0.0]
