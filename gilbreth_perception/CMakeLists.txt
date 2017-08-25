@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   message_generation
+  gilbreth_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -49,10 +50,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
- add_message_files(
-   FILES
-   ObjectDetection.msg
- )
+# add_message_files(
+#   FILES
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -206,8 +206,5 @@ target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 
 add_executable(recognition_node src/recognition_node.cpp)
 target_link_libraries(recognition_node ${catkin_LIBRARIES})
-add_dependencies(recognition_node gilbreth_perception_generate_message_cpp)
-
-add_executable(tf_publisher src/tf_publisher.cpp)
-target_link_libraries(tf_publisher ${catkin_LIBRARIES})
+add_dependencies(recognition_node gilbreth_msgs_generate_message_cpp)
 
