@@ -11,27 +11,24 @@
 #include <sensor_msgs/PointCloud2.h>
 
 // Algorithm params
-float down_sample_(0.01);
+float down_sample(0.01);
 
 ros::Publisher pub;
 
-void parseCommandLine(int argc, char *argv[]) {
+void loadParameter() {
   // General parameters
-  pcl::console::parse_argument(argc, argv, "--down_sample", down_sample_);
+  std::map<std::string, float> parameter_map;
+  ros::NodeHandle ph("~");
+  ph.getParam("parameters", parameter_map);
+  down_sample = parameter_map["down_sample"];
 }
 
-void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc,
-              char **argv) {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr scene_raw(
-      new pcl::PointCloud<pcl::PointXYZ>());
-  pcl::PointCloud<pcl::PointXYZ>::Ptr scene_filtered(
-      new pcl::PointCloud<pcl::PointXYZ>());
-  pcl::PointCloud<pcl::PointXYZ>::Ptr scene(
-      new pcl::PointCloud<pcl::PointXYZ>());
-
+void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc, char **argv) {
+  pcl::PointCloud<pcl::PointXYZ>::Ptr scene_raw(new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr scene_filtered(new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::PassThrough<pcl::PointXYZ> pass;
 
-  parseCommandLine(argc, argv);
   pcl::fromROSMsg(*cloud_msg, *scene_raw);
 
   // Filter the input scene
@@ -53,12 +50,11 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc,
   // Downsample scene
   pcl::VoxelGrid<pcl::PointXYZ> sor;
   sor.setInputCloud(scene_filtered);
-  sor.setLeafSize(down_sample_, down_sample_, down_sample_);
+  sor.setLeafSize(down_sample, down_sample, down_sample);
   sor.filter(*scene);
 
   // Cluster Extraction
-  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(
-      new pcl::search::KdTree<pcl::PointXYZ>());
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
   tree->setInputCloud(scene);
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
@@ -74,8 +70,7 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc,
   // Publish cluster clouds
   pcl::PointIndices::Ptr indices(new pcl::PointIndices);
   pcl::ExtractIndices<pcl::PointXYZ> extract;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cluster_cloud(
-      new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cluster_cloud(new pcl::PointCloud<pcl::PointXYZ>());
   sensor_msgs::PointCloud2 output;
 
   for (int i = 0; i < cluster_indices.size(); i++) {
@@ -98,10 +93,9 @@ int main(int argc, char **argv) {
   // Initialize ROS
   ros::init(argc, argv, "segmentation_node");
   ros::NodeHandle nh;
-
+  loadParameter();
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>(
-      "scene_point_cloud", 1, boost::bind(cloud_cb, _1, argc, argv));
+  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("scene_point_cloud", 1, boost::bind(cloud_cb, _1, argc, argv));
   // ROS publisher
   pub = nh.advertise<sensor_msgs::PointCloud2>("segmentation_result", 10);
 
