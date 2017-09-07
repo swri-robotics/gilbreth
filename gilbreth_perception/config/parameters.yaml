@@ -6,7 +6,7 @@ parameters:
   nr_iterations: 500
 switches:
   visualizer: true
-camera_scope:
+camera_roi:
   x: [-0.68, 0.68]
   y: [-0.2, 0.44]
   z: [0.0, 1.19]

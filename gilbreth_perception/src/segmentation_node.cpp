@@ -19,17 +19,17 @@ ros::Publisher pub;
 void loadParameter() {
   // General parameters
   std::map<std::string, float> parameter_map;
-  XmlRpc::XmlRpcValue camera_scope;
+  XmlRpc::XmlRpcValue camera_roi;
   ros::NodeHandle ph("~");
   ph.getParam("parameters", parameter_map);
   down_sample = parameter_map["down_sample"];
-  ph.getParam("camera_scope", camera_scope);
-  x_l=camera_scope["x"][0];
-  x_u=camera_scope["x"][1];
-  y_l=camera_scope["y"][0];
-  y_u=camera_scope["y"][1];
-  z_l=camera_scope["z"][0];
-  z_u=camera_scope["z"][1];
+  ph.getParam("camera_roi", camera_roi);
+  x_l=camera_roi["x"][0];
+  x_u=camera_roi["x"][1];
+  y_l=camera_roi["y"][0];
+  y_u=camera_roi["y"][1];
+  z_l=camera_roi["z"][0];
+  z_u=camera_roi["z"][1];
 }
 
 void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc, char **argv) {
