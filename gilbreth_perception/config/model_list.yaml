@@ -7,4 +7,4 @@ part_list:
    pick_pose: [-0.001, 0.1286, 1.1783, 0.0, 3.14159, 0.0]
  - name: piston_rod
    path: /model/piston_rod.pcd
-   pick_pose: [0.2678, 0.1312, 1.1829, 0.0, 3.14159, 0.0]
+   pick_pose: [0.240117, 0.131264, 1.182987, 0.0, 3.14159, 0.0]

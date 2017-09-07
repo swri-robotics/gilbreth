@@ -1,8 +1,12 @@
 parameters:
   descr_rad: 0.08
-  down_sample: 0.008
-  min_sample_distance: 0.025
-  max_correspondence_distance: 0.25
-  nr_iterations: 40
+  down_sample: 0.007
+  min_sample_distance: 0.02
+  max_correspondence_distance: 0.01
+  nr_iterations: 500
 switches:
   visualizer: true
+camera_scope:
+  x: [-0.68, 0.68]
+  y: [-0.2, 0.44]
+  z: [0.0, 1.19]
