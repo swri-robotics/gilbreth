@@ -12,18 +12,27 @@
 
 // Algorithm params
 float down_sample(0.01);
+double x_l, x_u, y_l, y_u, z_l, z_u;
 
 ros::Publisher pub;
 
 void loadParameter() {
   // General parameters
   std::map<std::string, float> parameter_map;
+  XmlRpc::XmlRpcValue camera_scope;
   ros::NodeHandle ph("~");
   ph.getParam("parameters", parameter_map);
   down_sample = parameter_map["down_sample"];
+  ph.getParam("camera_scope", camera_scope);
+  x_l=camera_scope["x"][0];
+  x_u=camera_scope["x"][1];
+  y_l=camera_scope["y"][0];
+  y_u=camera_scope["y"][1];
+  z_l=camera_scope["z"][0];
+  z_u=camera_scope["z"][1];
 }
 
-void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc, char **argv) {
+void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc, char **argv) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr scene_raw(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::PointCloud<pcl::PointXYZ>::Ptr scene_filtered(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>());
@@ -34,17 +43,17 @@ void cloud_cb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc, char 
   // Filter the input scene
   pass.setInputCloud(scene_raw);
   pass.setFilterFieldName("z");
-  pass.setFilterLimits(0, 1.19);
+  pass.setFilterLimits(z_l, z_u);
   pass.filter(*scene_filtered);
 
   pass.setInputCloud(scene_filtered);
   pass.setFilterFieldName("x");
-  pass.setFilterLimits(-0.69, 0.69);
+  pass.setFilterLimits(x_l, x_u);
   pass.filter(*scene_filtered);
 
   pass.setInputCloud(scene_filtered);
   pass.setFilterFieldName("y");
-  pass.setFilterLimits(-0.21, 0.45);
+  pass.setFilterLimits(y_l, y_u);
   pass.filter(*scene_filtered);
 
   // Downsample scene
@@ -95,7 +104,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh;
   loadParameter();
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("scene_point_cloud", 1, boost::bind(cloud_cb, _1, argc, argv));
+  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("scene_point_cloud", 1, boost::bind(cloudCb, _1, argc, argv));
   // ROS publisher
   pub = nh.advertise<sensor_msgs::PointCloud2>("segmentation_result", 10);
 
