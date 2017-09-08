@@ -8,7 +8,7 @@
 
   <!-- Gazebo -->
   <xacro:include filename="$(find gilbreth_support)/urdf/vacuum_gripper/vacuum_gripper.gazebo.xacro"/>
-  <xacro:vacuum_gripper_gazebo prefix="$(arg prefix)">
+  <xacro:vacuum_gripper_gazebo prefix="$(arg prefix)" gripper_link="${prefix}::${prefix}tool0">
     <drops_info/>
   </xacro:vacuum_gripper_gazebo>
 
