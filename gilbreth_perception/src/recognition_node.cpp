@@ -131,7 +131,7 @@ void loadModel(std::vector<std::vector<double> > &pick_pose, std::vector<std::st
   }
 }
 
-void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::TransformListener &listener, int argc, char **argv,
+void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, const tf::TransformListener &listener,
                    std::vector<std::vector<double> > &pick_pose, std::vector<std::string> &model_name,
                    std::vector<pcl::PointCloud<PointType>::Ptr> &model_list, std::vector<pcl::PointCloud<pcl::FPFHSignature33>::Ptr> &model_features_list) {
 
@@ -276,7 +276,7 @@ int main(int argc, char **argv) {
   loadModel(pick_pose, model_name, model_list, model_features_list);
   tf::TransformListener listener;
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, boost::bind(cloudCallBack, _1, boost::ref(listener), argc, argv, pick_pose, model_name, model_list, model_features_list));
+  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, boost::bind(cloudCallBack, _1, boost::ref(listener), pick_pose, model_name, model_list, model_features_list));
   // ROS publisher
   pub_tf = nh.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
   // Spin

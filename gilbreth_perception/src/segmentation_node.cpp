@@ -32,7 +32,7 @@ void loadParameter() {
   z_u=camera_roi["z"][1];
 }
 
-void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg, int argc, char **argv) {
+void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   pcl::PointCloud<pcl::PointXYZ>::Ptr scene_raw(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::PointCloud<pcl::PointXYZ>::Ptr scene_filtered(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::PointCloud<pcl::PointXYZ>::Ptr scene(new pcl::PointCloud<pcl::PointXYZ>());
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
   ros::NodeHandle nh;
   loadParameter();
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("scene_point_cloud", 1, boost::bind(cloudCb, _1, argc, argv));
+  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("scene_point_cloud", 1, cloudCb);
   // ROS publisher
   pub = nh.advertise<sensor_msgs::PointCloud2>("segmentation_result", 10);
 
