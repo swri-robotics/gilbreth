@@ -1,14 +1,12 @@
 <?xml version="1.0"?>
 <robot name="linear_actuator" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="linear_actuator" params="prefix">
+  <arg name="prefix" default="linear_actuator_"/>
 
-    <!-- URDF -->
-    <xacro:include filename="$(find gilbreth_support)/urdf/linear_actuator/linear_actuator.urdf.xacro"/>
-    <xacro:linear_actuator_urdf prefix="${prefix}"/>
+  <!-- URDF -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/linear_actuator/linear_actuator.urdf.xacro"/>
+  <xacro:linear_actuator_urdf prefix="$(arg prefix)"/>
 
-    <!-- Gazebo -->
-    <xacro:include filename="$(find gilbreth_support)/urdf/linear_actuator/linear_actuator.gazebo.xacro"/>
-    <xacro:linear_actuator_gazebo prefix="${prefix}" joint_interface="hardware_interface/PositionJointInterface"/>
-
-  </xacro:macro>
+  <!-- Gazebo -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/linear_actuator/linear_actuator.gazebo.xacro"/>
+  <xacro:linear_actuator_gazebo prefix="$(arg prefix)" joint_interface="hardware_interface/PositionJointInterface"/>
 </robot>

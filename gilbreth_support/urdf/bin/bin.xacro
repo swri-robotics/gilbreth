@@ -1,14 +1,13 @@
 <?xml version="1.0"?>
 <robot name="bin" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:macro name="bin" params="prefix">
+  <arg name="prefix" default="bin_"/>
 
-    <!-- URDF -->
-    <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.urdf.xacro"/>
-    <xacro:bin_urdf prefix="${prefix}"/>
+  <!-- URDF -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.urdf.xacro"/>
+  <xacro:bin_urdf prefix="$(arg prefix)"/>
 
-    <!-- Gazebo -->
-    <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.gazebo.xacro"/>
-    <xacro:bin_gazebo prefix="${prefix}"/>
+  <!-- Gazebo -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.gazebo.xacro"/>
+  <xacro:bin_gazebo prefix="$(arg prefix)"/>
 
-  </xacro:macro>
 </robot>

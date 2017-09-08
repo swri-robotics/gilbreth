@@ -35,10 +35,15 @@
         </ray>
         <always_on>1</always_on>
         <plugin name="${prefix}controller" filename="libgazebo_ros_laser.so" >
-          <topicName>/gilbreth/laser/scan</topicName>
+          <topicName>laser/scan</topicName>
           <frameName>${prefix}optical_link</frameName>
         </plugin>
       </sensor>
     </gazebo>
+
+    <gazebo>
+      <static>true</static>
+    </gazebo>
+
   </xacro:macro>
 </robot>

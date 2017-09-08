@@ -19,7 +19,7 @@
 
         <xacro:insert_block name="drops_info" />
 
-        <suction_cup_link>${prefix}tool0</suction_cup_link>
+        <suction_cup_link>${prefix}::${prefix}base_link</suction_cup_link>
 
         <!-- ROS -->
         <robot_namespace>/gilbreth</robot_namespace>

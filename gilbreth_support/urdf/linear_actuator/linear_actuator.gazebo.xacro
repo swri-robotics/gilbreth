@@ -22,5 +22,13 @@
         <mechanicalReduction>1</mechanicalReduction>
       </actuator>
     </transmission>
+
+    <gazebo>
+<!--      <static>true</static>-->
+      <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <robotNamespace>gilbreth</robotNamespace>
+        <robotParam>${prefix}description</robotParam>
+      </plugin>
+    </gazebo>
   </xacro:macro>
 </robot>
