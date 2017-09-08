@@ -8,5 +8,5 @@
 
   <!-- Gazebo -->
   <xacro:include filename="$(find gilbreth_support)/urdf/linear_actuator/linear_actuator.gazebo.xacro"/>
-  <xacro:linear_actuator_gazebo prefix="$(arg prefix)" joint_interface="hardware_interface/PositionJointInterface"/>
+  <xacro:linear_actuator_gazebo prefix="$(arg prefix)" joint_interface="PositionJointInterface"/>
 </robot>

@@ -1,16 +1,16 @@
 <?xml version="1.0"?>
 <robot name="linear_actuator_urdf" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find ur_description)/urdf/ur10.urdf.xacro"/>
+  <xacro:ur10_robot prefix="robot_" joint_limited="true"/>
+
+  <xacro:include filename="$(find gilbreth_support)/urdf/vacuum_gripper/vacuum_gripper.urdf.xacro"/>
+  <xacro:vacuum_gripper_urdf prefix="vacuum_gripper_"/>
+
   <xacro:macro name="linear_actuator_urdf" params="prefix">
     <xacro:property name="width" value="0.2" />
     <xacro:property name="length" value="4.6" />
     <xacro:property name="height" value="0.1" />
     <xacro:property name="carriage_length" value="0.2"/>
-
-    <xacro:include filename="$(find ur_description)/urdf/ur10.urdf.xacro"/>
-    <xacro:ur10_robot prefix="robot_" joint_limited="false"/>
-
-    <xacro:include filename="$(find gilbreth_support)/urdf/vacuum_gripper/vacuum_gripper.urdf.xacro"/>
-    <xacro:vacuum_gripper_urdf prefix="vacuum_gripper_"/>
 
     <!-- link list -->
     <link name="world"/>

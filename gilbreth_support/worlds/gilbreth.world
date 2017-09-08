@@ -47,11 +47,6 @@
       <pose>1.2 10 0 0 0 -1.571</pose>
     </include>
 
-<!--    <include>
-      <uri>model://vacuum_gripper</uri>
-      <pose>0 0 0 0 0 0</pose>
-    </include>-->
-
     <!-- Pool of @(obj_type) objects -->
     <population name="object_population">
       <model name="part_1">

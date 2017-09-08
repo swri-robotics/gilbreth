@@ -9,10 +9,6 @@
       <material>Gazebo/Grey</material>
     </gazebo>
 
-<!--    <gazebo reference="${prefix}carriage_joint">
-      <implicitSpringDamper>1</implicitSpringDamper>
-    </gazebo>-->
-
     <transmission name="${prefix}transmission">
       <type>transmission_interface/SimpleTransmission</type>
       <joint name="${prefix}carriage_joint">
@@ -24,9 +20,8 @@
     </transmission>
 
     <gazebo>
-<!--      <static>true</static>-->
       <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-        <robotNamespace>gilbreth</robotNamespace>
+        <robotNamespace>/</robotNamespace>
         <robotParam>${prefix}description</robotParam>
       </plugin>
     </gazebo>

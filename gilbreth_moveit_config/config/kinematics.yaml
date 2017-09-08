@@ -1,9 +1,9 @@
-robot_rail_gripper:
+robot_rail:
   kinematics_solver: lma_kinematics_plugin/LMAKinematicsPlugin
   kinematics_solver_search_resolution: 0.005
   kinematics_solver_timeout: 0.005
   kinematics_solver_attempts: 3
-robot_gripper:
+robot:
   kinematics_solver: lma_kinematics_plugin/LMAKinematicsPlugin
   kinematics_solver_search_resolution: 0.005
   kinematics_solver_timeout: 0.005
