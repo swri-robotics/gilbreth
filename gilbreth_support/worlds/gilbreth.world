@@ -47,6 +47,11 @@
       <pose>1.2 10 0 0 0 -1.571</pose>
     </include>
 
+<!--    <include>
+      <uri>model://vacuum_gripper</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>-->
+
     <!-- Pool of @(obj_type) objects -->
     <population name="object_population">
       <model name="part_1">
@@ -55,7 +60,7 @@
           <uri>model://part_1</uri>
         </include>
       </model>
-      <pose>1.2 3.0 2.1 0 0 0</pose>
+      <pose>1.2 0.5 2.1 0 0 0</pose>
       <distribution>
         <type>grid</type>
         <rows>2</rows>
@@ -65,7 +70,7 @@
     </population>
 
     <!-- Populate the conveyor belt -->
-<!--    <plugin filename="libROSPopulationPlugin.so" name="populate_conveyor">
+    <plugin filename="libROSPopulationPlugin.so" name="populate_conveyor">
       <activation_topic>/gilbreth/populate_belt</activation_topic>
       <rate_modifier_topic>/gilbreth/population/rate_modifier</rate_modifier_topic>
       <control_topic>/gilbreth/population/control</control_topic>
@@ -75,17 +80,17 @@
       <object_sequence>
         <object>
           <time>1</time>
-          <type>gear_part</type>
+          <type>part_1</type>
           <pose>1.21 -2 0.8126 0 0 0</pose>
         </object>
         <object>
           <time>3</time>
-          <type>gear_part</type>
+          <type>part_1</type>
           <pose>1.21 -2 0.8126 0 0 0</pose>
         </object>
       </object_sequence>
       <update_rate>10</update_rate>
-    </plugin>-->
+    </plugin>
 
   </world>
 </sdf>
