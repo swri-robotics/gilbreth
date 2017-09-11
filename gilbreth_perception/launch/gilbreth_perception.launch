@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="tf" type="static_transform_publisher" name="sensor_tf_publisher" args="1.1 3.3 2.3 0.70711 -0.70711 0 0 world_frame sensor_frame 100" />
+
+    <remap from="scene_point_cloud" to="/camera/depth/points"/>
+    <node pkg="gilbreth_perception" name="segmentation_node" type="segmentation_node">
+      <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
+    </node>
+    <node pkg="gilbreth_perception" name="recognition_node" type="recognition_node">
+       <rosparam command="load" file="$(find gilbreth_perception)/config/model_list.yaml"/>
+       <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
+       <param name="package_path" value="$(find gilbreth_perception)"/>
+    </node>
+</launch>
+

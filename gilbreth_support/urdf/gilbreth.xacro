@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<robot name="gilbreth" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- robot system -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/robot_system/robot_system.xacro"/>
+
+  <!-- bins -->
+<!--  <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.xacro"/>
+  <xacro:bin prefix="bin_1_"/>
+  <xacro:bin prefix="bin_2_"/>
+  <xacro:bin prefix="bin_3_"/>-->
+
+  <!-- depth camera -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/depth_camera/depth_camera.urdf.xacro"/>
+  <xacro:depth_camera_urdf prefix="depth_camera_"/>
+
+  <!-- break beam -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/break_beam/break_beam.urdf.xacro"/>
+  <xacro:break_beam_urdf prefix="break_beam_"/>
+
+  <!-- workcell -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/workcell/workcell.xacro"/>
+
+  <!-- Joints -->
+  <joint name="workcell_to_world" type="fixed">
+    <parent link="world" />
+    <child link="world_interface" />
+  </joint>
+
+  <!-- a break_beam type sensor in the frame break_beam_frame -->
+  <joint name="break_beam_joint" type="fixed">
+    <parent link="world" />
+    <child link="break_beam_world_interface" />
+  </joint>
+
+  <!-- a kinect camera in the frame kinect_camera_frame -->
+  <joint name="camera_link" type="fixed">
+    <parent link="world"/>
+    <child link="depth_camera_world_interface" />
+  </joint>
+
+  <!-- a bin in the frame bin1_frame -->
+<!--  <joint name="bin_1_joint" type="fixed">
+    <parent link="linear_actuator_base_link" />
+    <child link="bin_1_base_link" />
+    <origin xyz="-0.8 -1.0 -0.9" rpy="0 0 0" />
+  </joint>-->
+
+  <!-- a bin in the frame bin2_frame -->
+<!--  <joint name="bin_2_joint" type="fixed">
+    <parent link="linear_actuator_base_link" />
+    <child link="bin_2_base_link" />
+    <origin xyz="-0.8 0.0 -0.9" rpy="0 0 0" />
+  </joint>-->
+
+  <!-- a bin in the frame bin3_frame -->
+<!--  <joint name="bin_3_joint" type="fixed">
+    <parent link="linear_actuator_base_link" />
+    <child link="bin_3_base_link" />
+    <origin xyz="-0.8 1.0 -0.9" rpy="0 0 0" />
+  </joint>-->
+
+</robot>

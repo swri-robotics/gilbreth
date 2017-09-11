@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<sdf version='1.6'>
+
+  <model name='environment'>
+    <static>1</static>
+    <link name="world"></link>
+
+	  <model name='workcell'>
+	    <static>1</static>
+	    <pose frame=''>0 0 0 0 0 1.57</pose> 
+	    <include>
+		  <uri>model://workcell_gilbreth</uri>
+	    </include>
+	  </model><!---->
+     
+	  <model name='kinect_robot'>
+	    <static>1</static>
+	    <pose>1.1 3.3 2.3 0 1.57 0</pose>
+	    <include>
+		  <uri>model://kinect_robot</uri>
+	    </include>
+	  </model>
+
+    <joint name="world_to_kinect_robot" type="fixed">
+      <parent>world</parent>
+      <child>kinect_robot::link</child>
+    </joint>
+
+    <joint name="world_to_workcell" type="fixed">
+      <parent>world</parent>
+      <child>workcell::link</child>
+    </joint><!---->
+    
+  </model>
+</sdf>

@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- these are the arguments you can pass this launch file, for example paused:=true -->
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
+  <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="extra_gazebo_args" default="--verbose"/>
+
+  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find gilbreth_support)/worlds/gilbreth.world"/>
+    <arg name="debug" value="$(arg debug)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="extra_gazebo_args" value="$(arg extra_gazebo_args)"/>
+  </include>
+
+  <!-- Load the URDF into the ROS Parameter Server -->
+  <include file="$(find gilbreth_moveit_config)/launch/move_group.launch"/>
+  <include file="$(find gilbreth_support)/launch/load_gilbreth.launch"/>
+
+  <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
+<!--  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" args="-urdf -model gilbreth -param robot_description"/>-->
+
+  <include file="$(find gilbreth_support)/launch/spawn.launch"/>
+
+  <rosparam command="load" file="$(find gilbreth_support)/config/joint_state_controller.yaml"/>
+  <rosparam command="load" file="$(find gilbreth_support)/config/robot_rail_controller.yaml"/>
+  <node name="gilbreth_controller_spawner" pkg="controller_manager" type="spawner"
+    args="joint_state_controller robot_rail_controller"/>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gilbreth_support)/config/gilbreth.rviz"/>
+
+</launch>

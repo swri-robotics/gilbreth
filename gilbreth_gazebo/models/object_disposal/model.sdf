@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="object_disposal">
+    <!-- add the model for the structure (no sensors) -->
+    <include>
+      <uri>model://dumpster</uri>
+    </include>
+
+    <!-- create a joint to the link that is the one sensing collisions -->
+    <joint name="joint_link_top_link" type="fixed">
+      <parent>top_link</parent>
+      <child>Dumpster::link</child>
+    </joint>
+
+    <!-- add a link that is sensing collisions (the "mouth" of the dumpster) -->
+    <link name="top_link">
+      <pose frame=''>-0.013994 -0.010193 1.15 0.12526 -0 0</pose>
+      <gravity>false</gravity>
+      <sensor name='object_disposal_contact' type='contact'>
+        <update_rate>10</update_rate>
+        <contact>
+           <collision>top_collision</collision>
+        </contact>
+      </sensor>
+      <collision name="top_collision">
+        <max_contacts>10</max_contacts>
+        <geometry>
+          <box>
+            <size>1.55317 1.01293 0.034945</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name='visual'>
+        <!-- make invisible -->
+        <transparency>100</transparency>
+        <geometry>
+          <box>
+            <size>1.55317 1.01293 0.034945</size>
+          </box>
+        </geometry>
+        <cast_shadows>0</cast_shadows>
+      </visual>
+    </link>
+
+    <!-- plugin for proecssing contact sensor output -->
+    <plugin name="object_disposal_plugin" filename="libObjectDisposalPlugin.so">
+      <contact_sensor_name>object_disposal_contact</contact_sensor_name>
+      <center_of_gravity_check>true</center_of_gravity_check>
+    </plugin>
+
+  </model>
+</sdf>

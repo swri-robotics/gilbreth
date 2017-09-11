@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package>
+  <name>gilbreth_support</name>
+  <version>0.1.0</version>
+  <description>The gilbreth_support package</description>
+
+  <author email="michael.ripperger@swri.org">mripperger</author>
+  <maintainer email="michael.ripperger@swri.org">mripperger</maintainer>
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roslaunch</build_depend>
+
+  <run_depend>joint_state_publisher</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>ur_description</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>xacro</run_depend>
+  <run_depend>gazebo_ros</run_depend>
+  <run_depend>osrf_gear</run_depend>
+
+  <export>
+    <gazebo_ros plugin_path="${prefix}/lib" />
+    <gazebo_ros gazebo_media_path="${prefix}" />
+    <gazebo_ros gazebo_model_path="${prefix}/../src/gilbreth/gilbreth_support/models" />
+  </export>
+</package>
