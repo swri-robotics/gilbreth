@@ -27,13 +27,13 @@
         <mass value="1.0" />
       </inertial>
     </link>
-    <link name="${prefix}tool0"/>
+    <link name="${prefix}suction_cup"/>
 
     <!-- joint list -->
     <joint name="vacuum_gripper_joint" type="fixed">
       <origin xyz="0 0 0.080" rpy="0 0 0" />
       <parent link="${prefix}base_link" />
-      <child link="${prefix}tool0" />
+      <child link="${prefix}suction_cup" />
     </joint>
   </xacro:macro>
 </robot>
