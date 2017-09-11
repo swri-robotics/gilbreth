@@ -1,12 +1,13 @@
 <?xml version="1.0"?>
 <robot name="linear_actuator_urdf" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:property name="width" value="0.2" />
-  <xacro:property name="length" value="4.6" />
-  <xacro:property name="height" value="0.1" />
-  <xacro:property name="carriage_length" value="0.2"/>
-
   <xacro:macro name="linear_actuator_urdf" params="prefix">
+    <xacro:property name="width" value="0.2" />
+    <xacro:property name="length" value="4.6" />
+    <xacro:property name="height" value="0.1" />
+    <xacro:property name="carriage_length" value="0.2"/>
+
     <!-- link list -->
+    <link name="world"/>
     <link name="${prefix}base_link">
       <visual>
         <origin xyz="0 0 ${height / 2}" rpy="0 0 0" />
@@ -43,6 +44,11 @@
     </link>
 
     <!-- joint list -->
+    <joint name="${prefix}world_joint" type="fixed">
+      <parent link="world" />
+      <child link="${prefix}base_link" />
+      <origin xyz="0.4 0.0 0.9" rpy="0 0 0" />
+    </joint>
     <joint name="${prefix}carriage_joint" type="prismatic">
       <parent link="${prefix}base_link" />
       <child link="${prefix}carriage" />

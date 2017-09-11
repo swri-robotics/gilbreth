@@ -1,9 +1,9 @@
 robot_controller:
   type: position_controllers/JointTrajectoryController
   joints:
-     - robot_shoulder_pan_joint
-     - robot_shoulder_lift_joint
      - robot_elbow_joint
+     - robot_shoulder_lift_joint
+     - robot_shoulder_pan_joint
      - robot_wrist_1_joint
      - robot_wrist_2_joint
      - robot_wrist_3_joint

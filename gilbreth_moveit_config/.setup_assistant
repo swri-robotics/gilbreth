@@ -7,4 +7,4 @@ moveit_setup_assistant_config:
   CONFIG:
     author_name: Michael Ripperger
     author_email: michael.ripperger@swri.org
-    generated_timestamp: 1502722788
+    generated_timestamp: 1505152542

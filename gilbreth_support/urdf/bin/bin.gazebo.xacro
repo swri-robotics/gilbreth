@@ -7,14 +7,18 @@
         <contact>
           <collision>${prefix}bin_contact</collision>
         </contact>
-        <plugin name="${prefix}object_disposal_plugin" filename="libObjectDisposalPlugin.so">
-          <contact_sensor_name>object_disposal_contact</contact_sensor_name>
-          <center_of_gravity_check>true</center_of_gravity_check>
-          <robot_namespace>/gilbreth</robot_namespace>
-          <control_topic>object_disposal/control</control_topic>
-          <state_topic>object_disposal/state</state_topic>
-        </plugin>
       </sensor>
+    </gazebo>
+
+    <gazebo>
+      <static>true</static>
+      <plugin name="${prefix}object_disposal_plugin" filename="libObjectDisposalPlugin.so">
+        <contact_sensor_name>${prefix}contact_sensor</contact_sensor_name>
+<!--        <contact_side_normal>1 0 0</contact_side_normal>-->
+        <center_of_gravity_check>true</center_of_gravity_check>
+        <disposal_pose>30 30 0 0 0 0</disposal_pose>
+        <update_rate>5</update_rate>
+      </plugin>
     </gazebo>
   </xacro:macro>
 </robot>
