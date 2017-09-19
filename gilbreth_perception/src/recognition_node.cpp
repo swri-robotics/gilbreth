@@ -53,7 +53,6 @@ struct Result {
 	std::string item_name;
 	int item_id;
 	float fitness_score;
-	//pcl::PointXYZ pick_point;
 	Eigen::Matrix4f final_transformation;
 	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
