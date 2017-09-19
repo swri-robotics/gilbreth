@@ -6,6 +6,7 @@ parameters:
   nr_iterations: 500
 switches:
   visualizer: false
+  ICP: false # if false, use correspondence grouping algorithm
 camera_roi:
   x: [-0.68, 0.68]
   y: [-0.2, 0.44]
