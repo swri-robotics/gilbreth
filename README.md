@@ -25,9 +25,11 @@ Second, go to src folder in your workspace:
 ```
 cd ~/catkin_ws/src
 ```
-Third,clone gilbreth_gazebo and gilbreth_description folder:
+Third, download the Gilbreth and dependent packages:
 ```
-git clone https://github.com/swri-robotics/gilbreth.git
+wstool init .
+wstool merge https://github.com//gilbreth/kinetic-devel/gilbreth.rosinstall
+wstool update
 ```
 Make the files
 ```
