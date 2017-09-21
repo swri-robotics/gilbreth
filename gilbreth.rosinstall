@@ -1,0 +1,12 @@
+- git:
+    local-name: gilbreth
+    uri: https://github.com/swri-robotics/gilbreth.git
+    version: kinetic-devel
+- git:
+    local-name: universal_robot
+    uri: https://github.com/ros-industrial/universal_robot.git
+    version: kinetic-devel
+- git:
+    local-name: ariac
+    uri: https://marip8@bitbucket.org/marip8/ariac.git
+    version: modification/gripper_plugin
