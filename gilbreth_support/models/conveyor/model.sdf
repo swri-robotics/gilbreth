@@ -22,7 +22,7 @@
       <static>false</static>
       <pose>0 0 0.92 0 0 0</pose>
       <link name="belt">
-        <pose>10 0 -0.003 0 0 0</pose>
+        <pose>5 0 -0.003 0 0 0</pose>
         <inertial>
           <inertia>
             <ixx>3.8185</ixx>
@@ -34,10 +34,10 @@
           </inertia>
           <mass>100</mass>
         </inertial>
-<!--        <visual name="belt_collision">
-          <geometry>
+        <visual name="belt_collision">
+<!--          <geometry>
             <box>
-              <size>20 0.6 0.006</size>
+              <size>10 0.6 0.006</size>
             </box>
           </geometry>
           <material>
@@ -50,7 +50,7 @@
         <collision name="belt_collision">
           <geometry>
             <box>
-              <size>20 0.6 0.006</size>
+              <size>10 0.6 0.006</size>
             </box>
           </geometry>
           <surface>
