@@ -23,10 +23,11 @@
   <include file="$(find gilbreth_moveit_config)/launch/move_group.launch"/>
   <include file="$(find gilbreth_support)/launch/load_gilbreth.launch"/>
 
-  <!-- Run a python script to the send a service call to gazebo_ros to spawn a URDF robot -->
-<!--  <node name="urdf_spawner" pkg="gazebo_ros" type="spawn_model" respawn="false" output="screen" args="-urdf -model gilbreth -param robot_description"/>-->
-
+  <!-- Spawn the URDF objects into Gazebo -->
   <include file="$(find gilbreth_support)/launch/spawn.launch"/>
+
+  <!-- Start the conveyor spawner node -->
+  <include file="$(find gilbreth_support)/launch/conveyor_spawner.launch"/>
 
   <rosparam command="load" file="$(find gilbreth_support)/config/joint_state_controller.yaml"/>
   <rosparam command="load" file="$(find gilbreth_support)/config/robot_rail_controller.yaml"/>

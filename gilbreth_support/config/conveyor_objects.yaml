@@ -1,0 +1,11 @@
+objects:
+  topics: [gear_description, piston_rod_description, pulley_description, gasket_description, disk_description]
+  initial_pose:
+    position: [1.2, 4.0, 1.5]
+    orientation: [0.0, 0.0, 0.0]
+  reference_frame: world
+  lateral_placement_variance: 0.2   # [m] Distance range for objects to be placed transversely on the conveyor
+  yaw_placement_variance: 180.0     # [deg] Rotation angle range for objects to be placed on the conveyor
+  spawn_timing_variance: 1.0        # [s] Delay
+  spawn_period: 8.0                 # [s] Time between component spawnings
+  randomization_seed: 0             # Seed for randomization engine
