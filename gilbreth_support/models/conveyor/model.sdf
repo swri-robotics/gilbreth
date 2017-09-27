@@ -34,8 +34,8 @@
           </inertia>
           <mass>100</mass>
         </inertial>
-        <visual name="belt_collision">
-<!--          <geometry>
+<!--        <visual name="belt_collision">
+          <geometry>
             <box>
               <size>10 0.6 0.006</size>
             </box>
