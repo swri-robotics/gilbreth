@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(gilbreth_msgs)
-find_package(catkin REQUIRED roscpp geometry_msgs std_msgs trajectory_msgs message_generation)
+find_package(catkin REQUIRED 
+  roscpp 
+  geometry_msgs 
+  std_msgs 
+  trajectory_msgs 
+  message_generation
+  moveit_msgs
+)
 
 ################################################
 ## Declare ROS messages, services and actions ##
@@ -22,6 +29,7 @@ generate_messages(
   std_msgs
   geometry_msgs
   trajectory_msgs
+  moveit_msgs
 )
 
 
@@ -29,7 +37,13 @@ generate_messages(
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-  CATKIN_DEPENDS  message_runtime roscpp geometry_msgs std_msgs trajectory_msgs
+  CATKIN_DEPENDS  
+  message_runtime 
+  roscpp 
+  geometry_msgs 
+  std_msgs 
+  trajectory_msgs
+  moveit_msgs
 )
 
 ###########

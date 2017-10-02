@@ -15,5 +15,6 @@
   <depend>trajectory_msgs</depend>
   <depend>message_generation</depend>
   <depend>message_runtime</depend>
+  <depend>moveit_msgs</depend>
 
 </package>
