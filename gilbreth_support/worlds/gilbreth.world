@@ -44,48 +44,13 @@
 
     <include>
       <uri>model://conveyor</uri>
-      <pose>1.2 10 0 0 0 -1.571</pose>
+      <pose>1.2 5 0 0 0 -1.571</pose>
     </include>
 
-    <!-- Pool of @(obj_type) objects -->
-    <population name="object_population">
-      <model name="part_1">
-        <include>
-          <static>false</static>
-          <uri>model://part_1</uri>
-        </include>
-      </model>
-      <pose>1.2 0.5 2.1 0 0 0</pose>
-      <distribution>
-        <type>grid</type>
-        <rows>2</rows>
-        <cols>1</cols>
-        <step>0.2 0.2 0</step>
-      </distribution>
-    </population>
-
-    <!-- Populate the conveyor belt -->
-    <plugin filename="libROSPopulationPlugin.so" name="populate_conveyor">
-      <activation_topic>/gilbreth/populate_belt</activation_topic>
-      <rate_modifier_topic>/gilbreth/population/rate_modifier</rate_modifier_topic>
-      <control_topic>/gilbreth/population/control</control_topic>
-      <state_topic>/gilbreth/population/state</state_topic>
-      <loop_forever>true</loop_forever>
-      <frame>conveyor_belt::conveyor_belt_fixed</frame>
-      <object_sequence>
-        <object>
-          <time>1</time>
-          <type>part_1</type>
-          <pose>1.21 -2 0.8126 0 0 0</pose>
-        </object>
-        <object>
-          <time>3</time>
-          <type>part_1</type>
-          <pose>1.21 -2 0.8126 0 0 0</pose>
-        </object>
-      </object_sequence>
-      <update_rate>10</update_rate>
-    </plugin>
+    <include>
+      <uri>model://deletion_wall</uri>
+      <pose>1.2 -5.1 1.425 0 0 1.5708</pose>
+    </include>
 
   </world>
 </sdf>

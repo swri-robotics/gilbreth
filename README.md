@@ -64,3 +64,7 @@ Activate the conveyor:
 ```
 rosservice call /gilbreth/conveyor/control "state: power: <(0.0 - 100.0)>"
 ```
+Control the conveyor part spawner:
+```
+rosservice call /[start/stop]_spawn
+```
