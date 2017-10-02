@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(gilbreth_perception)
 
 ## Add support for C++11, supported in ROS Kinetic and newer
-# add_definitions(-std=c++11)
+add_definitions(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -69,10 +69,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   sensor_msgs
- )
+# generate_messages(
+#   DEPENDENCIES
+#   sensor_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -108,7 +108,9 @@ catkin_package(
 #  LIBRARIES gilbreth_perception
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
-CATKIN_DEPENDS message_runtime
+CATKIN_DEPENDS 
+  message_runtime
+  gilbreth_msgs
 )
 
 ###########
@@ -118,6 +120,7 @@ CATKIN_DEPENDS message_runtime
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+
 include_directories(
   ${catkin_INCLUDE_DIRS}
 )
@@ -206,5 +209,5 @@ target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 
 add_executable(recognition_node src/recognition_node.cpp)
 target_link_libraries(recognition_node ${catkin_LIBRARIES})
-add_dependencies(recognition_node gilbreth_msgs_generate_message_cpp)
+add_dependencies(recognition_node ${catkin_EXPORTED_TARGETS})
 
