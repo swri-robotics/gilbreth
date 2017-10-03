@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <rosparam command="load" file="$(find gilbreth_grasp_planning)/config/tool_plan_param.yaml" ns="gilbreth/tool_plan"/>  
+    <rosparam command="load" file="$(find gilbreth_grasp_planning)/config/pickpose.yaml" ns="gilbreth/pick_pose"/>      
+    <node pkg="gilbreth_grasp_planning" name="fake_publisher" type="tool_publisher2.py" output="screen"/>
+</launch>

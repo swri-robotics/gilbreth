@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<!-- a demo shows the triggered and publish behavior-->
+<launch>
+    <node name="start_conveyor_node" pkg="gilbreth_grasp_planning" type="start_conveyor"/>
+    <node name="kinect_publisher_node" pkg="gilbreth_grasp_planning" type="kinect_publisher"/>
+</launch>
