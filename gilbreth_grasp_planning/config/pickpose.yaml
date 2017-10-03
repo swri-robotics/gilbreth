@@ -1,0 +1,21 @@
+pulley:
+    pose:
+      xyz: [0.0, 0.0, 0.00]
+      rpy: [0, 0, 0]
+piston_rod:
+    pose:
+      xyz: [0.0, 0.0, 0.01]
+      rpy: [0, 0, 0]
+gear:
+    pose:
+      xyz: [0.0, 0.0, 0.0095]
+      rpy: [0, 0, 0]
+disk:
+    pose:
+      xyz: [0.0, 0.0, 0.0554]
+      rpy: [0, 0, 0]
+gasket:
+    pose:
+      xyz: [0.0, 0.0, 0.0]
+      rpy: [0, 0, 0]
+
