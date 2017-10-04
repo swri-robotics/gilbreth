@@ -1,13 +1,17 @@
 parameters:
   descr_rad: 0.08
   down_sample: 0.007
+  #ICP
   min_sample_distance: 0.02
   max_correspondence_distance: 0.01
   nr_iterations: 500
+  #correspondence grouping
+  cg_size: 0.05
+  cg_thresh: 8.0
 switches:
-  visualizer: false
   ICP: false # if false, use correspondence grouping algorithm
+  print_detailed_info: false
 camera_roi:
-  x: [-0.68, 0.68]
-  y: [-0.2, 0.44]
-  z: [0.0, 1.19]
+  x: [-0.22543, 0.192618]
+  y: [-0.2874, 0.283763]
+  z: [0.0, 0.7162]

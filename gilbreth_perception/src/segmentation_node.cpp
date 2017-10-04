@@ -13,6 +13,7 @@
 // Algorithm params
 float down_sample(0.01);
 double x_l, x_u, y_l, y_u, z_l, z_u;
+bool print_detailed_info(false);
 
 ros::Publisher pub;
 
@@ -20,16 +21,19 @@ void loadParameter() {
   // General parameters
   std::map<std::string, float> parameter_map;
   XmlRpc::XmlRpcValue camera_roi;
+  std::map<std::string, bool> switch_map;
   ros::NodeHandle ph("~");
   ph.getParam("parameters", parameter_map);
   down_sample = parameter_map["down_sample"];
   ph.getParam("camera_roi", camera_roi);
-  x_l=camera_roi["x"][0];
-  x_u=camera_roi["x"][1];
-  y_l=camera_roi["y"][0];
-  y_u=camera_roi["y"][1];
-  z_l=camera_roi["z"][0];
-  z_u=camera_roi["z"][1];
+  x_l = camera_roi["x"][0];
+  x_u = camera_roi["x"][1];
+  y_l = camera_roi["y"][0];
+  y_u = camera_roi["y"][1];
+  z_l = camera_roi["z"][0];
+  z_u = camera_roi["z"][1];
+  ph.getParam("switches", switch_map);
+  print_detailed_info = switch_map["print_detailed_info"];
 }
 
 void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
@@ -39,7 +43,6 @@ void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   pcl::PassThrough<pcl::PointXYZ> pass;
 
   pcl::fromROSMsg(*cloud_msg, *scene_raw);
-
   // Filter the input scene
   pass.setInputCloud(scene_raw);
   pass.setFilterFieldName("z");
@@ -55,45 +58,50 @@ void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   pass.setFilterFieldName("y");
   pass.setFilterLimits(y_l, y_u);
   pass.filter(*scene_filtered);
+  if (scene_filtered->points.size() > 0) {
+    // Downsample scene
+    pcl::VoxelGrid<pcl::PointXYZ> sor;
+    sor.setInputCloud(scene_filtered);
+    sor.setLeafSize(down_sample, down_sample, down_sample);
+    sor.filter(*scene);
 
-  // Downsample scene
-  pcl::VoxelGrid<pcl::PointXYZ> sor;
-  sor.setInputCloud(scene_filtered);
-  sor.setLeafSize(down_sample, down_sample, down_sample);
-  sor.filter(*scene);
+    // Cluster Extraction
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
+    tree->setInputCloud(scene);
+    std::vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance(0.1); // 10cm
+    ec.setMinClusterSize(80);
+    ec.setMaxClusterSize(25000);
+    ec.setSearchMethod(tree);
+    ec.setInputCloud(scene);
+    ec.extract(cluster_indices);
+    if (print_detailed_info) {
+      std::cerr << "Cluster number is : " << cluster_indices.size() << std::endl;
+    }
 
-  // Cluster Extraction
-  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
-  tree->setInputCloud(scene);
-  std::vector<pcl::PointIndices> cluster_indices;
-  pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-  ec.setClusterTolerance(0.1); // 10cm
-  ec.setMinClusterSize(80);
-  ec.setMaxClusterSize(25000);
-  ec.setSearchMethod(tree);
-  ec.setInputCloud(scene);
-  ec.extract(cluster_indices);
+    // Publish cluster clouds
+    if (cluster_indices.size() > 0) {
+      pcl::PointIndices::Ptr indices(new pcl::PointIndices);
+      pcl::ExtractIndices<pcl::PointXYZ> extract;
+      pcl::PointCloud<pcl::PointXYZ>::Ptr cluster_cloud(new pcl::PointCloud<pcl::PointXYZ>());
+      sensor_msgs::PointCloud2 output;
 
-  std::cerr << "Cluster number is : " << cluster_indices.size() << std::endl;
+      for (int i = 0; i < cluster_indices.size(); i++) {
+        *indices = cluster_indices[i];
+        extract.setInputCloud(scene);
+        extract.setIndices(indices);
+        extract.setNegative(false);
+        extract.filter(*cluster_cloud);
 
-  // Publish cluster clouds
-  pcl::PointIndices::Ptr indices(new pcl::PointIndices);
-  pcl::ExtractIndices<pcl::PointXYZ> extract;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cluster_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-  sensor_msgs::PointCloud2 output;
-
-  for (int i = 0; i < cluster_indices.size(); i++) {
-    *indices = cluster_indices[i];
-    extract.setInputCloud(scene);
-    extract.setIndices(indices);
-    extract.setNegative(false);
-    extract.filter(*cluster_cloud);
-
-    pcl::toROSMsg(*cluster_cloud, output);
-    output.header.stamp = cloud_msg->header.stamp;
-    pub.publish(output);
-
-    std::cerr << "Publish cluster " << i << std::endl;
+        pcl::toROSMsg(*cluster_cloud, output);
+        output.header.stamp = cloud_msg->header.stamp;
+        pub.publish(output);
+        if (print_detailed_info) {
+          std::cerr << "Publish cluster " << i + 1 << std::endl;
+        }
+      }
+    }
   }
 }
 
