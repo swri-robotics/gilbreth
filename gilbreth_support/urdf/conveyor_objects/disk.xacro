@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<robot name="disk" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find gilbreth_support)/urdf/conveyor_objects/disk_macro.xacro"/>
-  <xacro:disk prefix="disk_"/>
-</robot>

@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<robot name="pulley" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find gilbreth_support)/urdf/conveyor_objects/pulley_macro.xacro"/>
-  <xacro:pulley prefix="pulley_"/>
-</robot>

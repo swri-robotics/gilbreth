@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<robot name="gear" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find gilbreth_support)/urdf/conveyor_objects/gear_macro.xacro"/>
-  <xacro:gear prefix="gear_"/>
-</robot>

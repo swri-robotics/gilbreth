@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<robot name="piston_rod" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find gilbreth_support)/urdf/conveyor_objects/piston_rod_macro.xacro"/>
-  <xacro:piston_rod prefix="piston_rod_"/>
-</robot>
