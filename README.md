@@ -30,6 +30,7 @@ Third, download the Gilbreth and dependent packages:
 wstool init .
 wstool merge https://github.com//gilbreth/kinetic-devel/gilbreth.rosinstall
 wstool update
+rosdep install --from-paths . --ignore-src -y
 ```
 Make the files
 ```
