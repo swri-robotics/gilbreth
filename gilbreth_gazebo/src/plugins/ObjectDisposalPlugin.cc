@@ -109,7 +109,8 @@ void ObjectDisposalPlugin::ActOnContactingModels()
       if (removeModel)
       {
         gzdbg << "[" << this->model->GetName() << "] Removing model: " << model->GetName() << "\n";
-        model->SetWorldPose(this->disposalPose);
+//        model->SetWorldPose(this->disposalPose);
+        world->RemoveModel(model->GetName());
       }
     }
   }
