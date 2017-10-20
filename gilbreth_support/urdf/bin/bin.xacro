@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot name="bin" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <arg name="prefix" default="bin_"/>
+  <arg name="prefix" default="bin_1_"/>
 
   <!-- URDF -->
   <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.urdf.xacro"/>
