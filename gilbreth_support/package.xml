@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>gilbreth_support</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>The gilbreth_support package</description>
 
   <author email="michael.ripperger@swri.org">marip8</author>
@@ -11,28 +11,14 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roslaunch</build_depend>
-  <build_depend>gazebo_msgs</build_depend>
-  <build_depend>std_srvs</build_depend>
-  <build_depend>tf</build_depend>
-  <build_depend>xmlrpcpp</build_depend>
-  <build_depend>tinyxml</build_depend>
 
   <run_depend>joint_state_publisher</run_depend>
   <run_depend>robot_state_publisher</run_depend>
   <run_depend>ur_description</run_depend>
   <run_depend>rviz</run_depend>
   <run_depend>xacro</run_depend>
-  <run_depend>gazebo_ros</run_depend>
-  <run_depend>osrf_gear</run_depend>
-  <run_depend>gazebo_msgs</run_depend>
-  <run_depend>std_srvs</run_depend>
-  <run_depend>tf</run_depend>
-  <run_depend>xmlrpcpp</run_depend>
-  <run_depend>tinyxml</run_depend>
 
   <export>
-    <gazebo_ros plugin_path="${prefix}/lib" />
-    <gazebo_ros gazebo_media_path="${prefix}" />
-    <gazebo_ros gazebo_model_path="${prefix}/../src/gilbreth/gilbreth_support/models" />
+    <architecture_independent/>
   </export>
 </package>
