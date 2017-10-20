@@ -180,8 +180,6 @@ void ConveyorSpawner::spawnObject(const ros::TimerEvent& e)
 
   // Randomize the model to be spawned
   int idx = rand() % params_.objects.size();
-  ROS_INFO("Random index is %d", idx);
-
   auto obj = params_.objects.begin();
   std::advance(obj, idx);
 

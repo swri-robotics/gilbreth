@@ -13,8 +13,8 @@ int main(int argc, char **argv)
   std::string object_name;
   pnh.param<std::string>("object_name", object_name, "test");
 
-  std::string mesh_filename;
-  pnh.param<std::string>("mesh_filename", mesh_filename, "package://gilbreth_support/meshes/conveyor_objects/visual/gear.stl");
+  std::string mesh_resource;
+  pnh.param<std::string>("mesh_resource", mesh_resource, "package://gilbreth_gazebo/meshes/conveyor_objects/gear.stl");
 
   std::vector<double> initial_position;
   pnh.param<std::vector<double>>("initial_position", initial_position, {1.2, 1.0, 1.0});
@@ -26,7 +26,7 @@ int main(int argc, char **argv)
     return -1;
   }
 
-  std::string parsed_xml = gilbreth::simulation::createObjectURDF("gear", mesh_filename);
+  std::string parsed_xml = gilbreth::simulation::createObjectURDF("gear", mesh_resource);
 
   gazebo_msgs::SpawnModel srv;
   srv.request.model_name = object_name;
