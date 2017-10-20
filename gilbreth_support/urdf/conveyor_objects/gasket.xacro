@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<robot name="gasket" xmlns:xacro="http://www.ros.org/wiki/xacro">
-  <xacro:include filename="$(find gilbreth_support)/urdf/conveyor_objects/gasket_macro.xacro"/>
-  <xacro:gasket prefix="gasket_"/>
-</robot>
