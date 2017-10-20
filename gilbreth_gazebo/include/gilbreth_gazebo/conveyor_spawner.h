@@ -5,7 +5,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Empty.h>
 #include <urdf/model.h>
-#include <xmlrpcpp/XmlRpcValue.h>
+#include <XmlRpcValue.h>
 
 namespace gilbreth
 {

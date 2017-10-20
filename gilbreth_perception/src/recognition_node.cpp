@@ -38,11 +38,29 @@ typedef pcl::Normal NormalType;
 
 class RecognitionClass {
 public:
-  explicit RecognitionClass(ros::NodeHandle &nh) {
+
+
+  
+  explicit RecognitionClass(ros::NodeHandle &nh) 
+  {
+    
+    // initializing parameters
+    descr_rad = 0.02;
+    down_sample = 0.01;
+    min_sample_distance = 0.025;
+    max_correspondence_distance = 0.01 * 0.01;
+    nr_iterations = 20;
+    visualizer = false;
+    icp = true;
+    cg_size = 0.05;
+    cg_thresh = 8.0;
+    print_detailed_info = false;
+
     pub_tf = nh.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
     loadParameter();
     loadModel();
   }
+
   void loadParameter() {
     // General parameters
     std::map<std::string, float> parameter_map;
@@ -396,17 +414,18 @@ private:
   std::vector<pcl::PointCloud<pcl::SHOT352>::Ptr> model_descriptor_list;
   std::vector<pcl::PointCloud<pcl::ReferenceFrame>::Ptr> model_rf_list;
   tf::TransformListener listener;
+
   // Algorithm params
-  float descr_rad = 0.02;
-  float down_sample = 0.01;
-  float min_sample_distance = 0.025;
-  float max_correspondence_distance = 0.01 * 0.01;
-  int nr_iterations = 20;
-  bool visualizer = false;
-  bool icp = true;
-  float cg_size = 0.05;
-  float cg_thresh = 8.0;
-  bool print_detailed_info = false;
+  float descr_rad;
+  float down_sample;
+  float min_sample_distance;
+  float max_correspondence_distance;
+  int nr_iterations;
+  bool visualizer;
+  bool icp;
+  float cg_size;
+  float cg_thresh;
+  bool print_detailed_info;
 };
 
 int main(int argc, char **argv) {

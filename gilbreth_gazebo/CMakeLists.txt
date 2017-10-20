@@ -19,7 +19,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   tf
-  xmlrpcpp
 )
 
 find_package(gazebo REQUIRED)
@@ -68,7 +67,6 @@ catkin_package(
     std_msgs
     std_srvs
     tf
-    xmlrpcpp
   DEPENDS
     TinyXML
 )

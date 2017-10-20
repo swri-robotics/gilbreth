@@ -23,7 +23,6 @@
   <depend>std_srvs</depend>
   <depend>tinyxml</depend>
   <depend>tf</depend>
-  <depend>xmlrpcpp</depend>
 
   <build_depend>message_generation</build_depend>
 
