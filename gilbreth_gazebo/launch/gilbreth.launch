@@ -1,51 +1,43 @@
 <?xml version="1.0"?>
 <launch>
-  <!-- run a relay to make joint_states available on ariac/joint_states -->
-  <node name="relay_joint_states" pkg="topic_tools" type="relay"
-        args="/joint_states /gilbreth/joint_states" required="true" output="log" />
-
-  <remap from="joint_states" to="gilbreth/joint_states" />
-
-  <arg name="limited" default="false"/>
+  <!-- these are the arguments you can pass this launch file, for example paused:=true -->
+  <arg name="paused" default="false"/>
+  <arg name="use_sim_time" default="true"/>
   <arg name="gui" default="true"/>
+  <arg name="headless" default="false"/>
   <arg name="debug" default="false"/>
-  <arg name="verbose" default="false"/>
-  <arg name="world_path" default="$(find gilbreth_gazebo)/worlds/gilbreth.world"/>
-  <arg name="gear_urdf_xacro" default="$(find gilbreth_gazebo)/launch/gilbreth.urdf.xacro" />
-  <arg name="state_log_dir" value="$(env HOME)/.gilbreth/log/gazebo" />
+  <arg name="extra_gazebo_args" default="--verbose"/>
 
-  <!-- run startup script -->
-<!-- 
-  <node name="startup_ariac" pkg="osrf_gear" type="startup.sh" output="screen" />
-
-  <arg unless="$(arg competition_mode)" name="enable_gz_ros_network" value="true"/>
-  <arg     if="$(arg competition_mode)" name="enable_gz_ros_network" value="false"/>
-  -->
-  <!-- startup simulated world -->
-  <include file="$(find gilbreth_gazebo)/launch/empty_world.launch">
-    <arg name="world_name" default="$(arg world_path)"/>
-    <!-- Always start paused because the arm spawn needs it that way. -->
-    <arg name="paused" value="true"/>
-<!--
-    <arg name="enable_ros_network" value="$(arg enable_gz_ros_network)"/>
--->
-    <arg name="gui" value="$(arg gui)"/>
-    <arg name="extra_gazebo_args" value="" />
+  <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find gilbreth_gazebo)/worlds/gilbreth.world"/>
     <arg name="debug" value="$(arg debug)" />
-    <arg name="verbose" value="$(arg verbose)" />
+    <arg name="gui" value="$(arg gui)" />
+    <arg name="paused" value="$(arg paused)"/>
+    <arg name="use_sim_time" value="$(arg use_sim_time)"/>
+    <arg name="headless" value="$(arg headless)"/>
+    <arg name="extra_gazebo_args" value="$(arg extra_gazebo_args)"/>
   </include>
 
-  <!-- load the URDF (it will include the robot arm model) 
-  <param name="robot_description"
-         command="$(find xacro)/xacro.py '$(arg gear_urdf_xacro)' use_effort_interface:=true" />-->
+  <!-- Load the URDF into the ROS Parameter Server -->
+  <include file="$(find gilbreth_moveit_config)/launch/move_group.launch"/>
+  <include file="$(find gilbreth_support)/launch/load_gilbreth.launch"/>
 
+  <!-- Spawn the URDF objects into Gazebo -->
+  <include file="$(find gilbreth_gazebo)/launch/spawn.launch"/>
 
-  <!-- load ur10
-  <include file="$(find gilbreth_gazebo)/launch/ur10/ur10.xml">
-    <arg name="limited" value="$(arg limited)" />
-    <arg name="extra_spawn_model_args" value="-J elbow_joint 1.51 -J linear_arm_actuator_joint 0 -J shoulder_pan_joint 3.14 -J wrist_3_joint 0 -J wrist_1_joint 3.77 -J shoulder_lift_joint -1.13 -J wrist_2_joint -1.51" />
-    <arg name="set_robot_description" value="false" />
-  </include> -->
+  <!-- Start the conveyor spawner node -->
+  <node name="conveyor_spawner" pkg="gilbreth_gazebo" type="conveyor_spawner_node" output="screen">
+    <rosparam command="load" file="$(find gilbreth_gazebo)/config/conveyor_objects.yaml"/>
+  </node>
 
+  <rosparam command="load" file="$(find gilbreth_gazebo)/config/joint_state_controller.yaml"/>
+  <rosparam command="load" file="$(find gilbreth_gazebo)/config/robot_rail_controller.yaml"/>
+  <node name="gilbreth_controller_spawner" pkg="controller_manager" type="spawner"
+    args="joint_state_controller robot_rail_controller"/>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gilbreth_support)/config/gilbreth.rviz"/>
 
 </launch>
