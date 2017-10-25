@@ -45,7 +45,7 @@ Source the workspace and add the Gazebo model path environment variables
 ```
 cd ~/catkin_ws
 source devel/setup.bash
-bash src/gilbreth/gilbreth_support/scripts/export_gazebo_model_path.bash
+bash src/gilbreth/gilbreth_gazebo/scripts/export_gazebo_model_path.bash
 ```
 
 ### View the URDF
@@ -57,7 +57,7 @@ roslaunch urdf_tutorial display.launch model:=`rospack find gilbreth_support`/ur
 
 Roslaunch the gazebo environment:
 ```
-roslaunch gilbreth_support gilbreth.launch
+roslaunch gilbreth_gazebo gilbreth.launch
 ```
 Activate the gripper:
 ```

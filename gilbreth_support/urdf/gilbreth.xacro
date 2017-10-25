@@ -5,10 +5,10 @@
   <xacro:include filename="$(find gilbreth_support)/urdf/robot_system/robot_system.xacro"/>
 
   <!-- bins -->
-<!--  <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.xacro"/>
-  <xacro:bin prefix="bin_1_"/>
-  <xacro:bin prefix="bin_2_"/>
-  <xacro:bin prefix="bin_3_"/>-->
+  <xacro:include filename="$(find gilbreth_support)/urdf/bin/bin.urdf.xacro"/>
+  <xacro:bin_urdf prefix="bin_1_"/>
+  <xacro:bin_urdf prefix="bin_2_"/>
+  <xacro:bin_urdf prefix="bin_3_"/>
 
   <!-- depth camera -->
   <xacro:include filename="$(find gilbreth_support)/urdf/depth_camera/depth_camera.urdf.xacro"/>
@@ -40,24 +40,24 @@
   </joint>
 
   <!-- a bin in the frame bin1_frame -->
-<!--  <joint name="bin_1_joint" type="fixed">
-    <parent link="linear_actuator_base_link" />
+  <joint name="bin_1_joint" type="fixed">
+    <parent link="world" />
     <child link="bin_1_base_link" />
-    <origin xyz="-0.8 -1.0 -0.9" rpy="0 0 0" />
-  </joint>-->
+    <origin xyz="-0.4 -1.0 0.0" rpy="0 0 0" />
+  </joint>
 
   <!-- a bin in the frame bin2_frame -->
-<!--  <joint name="bin_2_joint" type="fixed">
-    <parent link="linear_actuator_base_link" />
+  <joint name="bin_2_joint" type="fixed">
+    <parent link="world" />
     <child link="bin_2_base_link" />
-    <origin xyz="-0.8 0.0 -0.9" rpy="0 0 0" />
-  </joint>-->
+    <origin xyz="-0.4 0.0 0.0" rpy="0 0 0" />
+  </joint>
 
   <!-- a bin in the frame bin3_frame -->
-<!--  <joint name="bin_3_joint" type="fixed">
-    <parent link="linear_actuator_base_link" />
+  <joint name="bin_3_joint" type="fixed">
+    <parent link="world" />
     <child link="bin_3_base_link" />
-    <origin xyz="-0.8 1.0 -0.9" rpy="0 0 0" />
-  </joint>-->
+    <origin xyz="-0.4 1.0 0.0" rpy="0 0 0" />
+  </joint>
 
 </robot>

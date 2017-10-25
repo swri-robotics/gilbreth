@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="workcell" value="workcell_"/>
+  <arg name="robot_system" value="robot_system_"/>
+  <arg name="vacuum_gripper" value="vacuum_gripper_"/>
+  <arg name="depth_camera" value="depth_camera_"/>
+  <arg name="break_beam" value="break_beam_"/>
+  <arg name="bin_1" value="bin_1_"/>
+  <arg name="bin_2" value="bin_2_"/>
+  <arg name="bin_3" value="bin_3_"/>
+
+  <!-- Load xacros into parameters -->
+
+  <param name="$(arg workcell)description"
+    command="$(find xacro)/xacro --inorder '$(find gilbreth_support)/urdf/workcell/workcell.xacro'"/>
+
+  <param name="$(arg robot_system)description"
+    command="$(find xacro)/xacro --inorder '$(find gilbreth_support)/urdf/robot_system/robot_system.xacro'"/>
+
+  <param name="$(arg depth_camera)description"
+    command="$(find xacro)/xacro --inorder '$(find gilbreth_support)/urdf/depth_camera/depth_camera.xacro' prefix:=$(arg depth_camera)"/>
+
+  <param name="$(arg break_beam)description"
+    command="$(find xacro)/xacro --inorder '$(find gilbreth_support)/urdf/break_beam/break_beam.xacro' prefix:=$(arg break_beam)"/>
+
+  <param name="$(arg bin_1)description"
+    command="$(find xacro)/xacro --inorder '$(find gilbreth_support)/urdf/bin/bin.xacro' prefix:=$(arg bin_1)"/>
+
+  <param name="$(arg bin_2)description"
+    command="$(find xacro)/xacro --inorder '$(find gilbreth_support)/urdf/bin/bin.xacro' prefix:=$(arg bin_2)"/>
+
+  <param name="$(arg bin_3)description"
+    command="$(find xacro)/xacro --inorder '$(find gilbreth_support)/urdf/bin/bin.xacro' prefix:=$(arg bin_3)"/>
+
+  <!-- Spawner Nodes -->
+
+  <node name="$(arg workcell)spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+    args="-urdf -model $(arg workcell) -param $(arg workcell)description"/>
+
+  <node name="$(arg robot_system)spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+    args="-urdf -model $(arg robot_system) -param $(arg robot_system)description"/>
+
+  <node name="$(arg depth_camera)spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+    args="-urdf -model $(arg depth_camera) -param $(arg depth_camera)description"/>
+
+  <node name="$(arg break_beam)spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+    args="-urdf -model $(arg break_beam) -param $(arg break_beam)description"/>
+
+  <node name="$(arg bin_1)spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+    args="-urdf -model $(arg bin_1) -param $(arg bin_1)description -x -0.4 -y -1.0"/>
+
+  <node name="$(arg bin_2)spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+    args="-urdf -model $(arg bin_2) -param $(arg bin_2)description -x -0.4"/>
+
+  <node name="$(arg bin_3)spawner" pkg="gazebo_ros" type="spawn_model" output="screen"
+    args="-urdf -model $(arg bin_3) -param $(arg bin_3)description -x -0.4 -y 1.0"/>
+
+</launch>

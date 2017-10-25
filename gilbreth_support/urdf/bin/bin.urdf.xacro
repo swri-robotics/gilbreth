@@ -12,13 +12,13 @@
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://gilbreth_support/meshes/bin/collision/bin_sides.dae"/>
+          <mesh filename="package://gilbreth_support/meshes/bin/collision/bin_bottom.dae"/>
         </geometry>
       </collision>
-      <collision name="${prefix}bin_contact">
+      <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://gilbreth_support/meshes/bin/collision/bin_bottom.dae"/>
+          <mesh filename="package://gilbreth_support/meshes/bin/collision/bin_sides.dae"/>
         </geometry>
       </collision>
       <inertial>

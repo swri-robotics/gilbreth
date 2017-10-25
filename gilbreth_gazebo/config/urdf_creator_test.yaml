@@ -1,0 +1,5 @@
+urdf_creator_test:
+  reference_frame: world
+  object_name: gear
+  mesh_resource: package://gilbreth_gazebo/meshes/conveyor_objects/gear.stl
+  initial_position: [-0.4, 0.0, 2.0]
