@@ -43,40 +43,58 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 ## Running Gilbreth
 
 ### Setup
-- Source the workspace and add the Gazebo model path environment variables
+- Source the catkin workspace 
 
 	```
 	cd ~/catkin_ws
 	source devel/setup.bash
-	bash src/gilbreth/gilbreth_gazebo/scripts/export_gazebo_model_path.bash
 	```
 
 ### View the URDF
 
 	```
-	roslaunch urdf_tutorial display.launch model:=`rospack find gilbreth_support`/urdf/gilbreth.xacro
+	roslaunch urdf_tutorial xacrodisplay.launch model:=$(rospack find gilbreth_support)/urdf/gilbreth.xacro
 	```
+    
+   It may be necessary to select "world" in the "Fixed Frame" drop down in the rviz window.
+    
 
 ### Run the simulation environment
 
-1. Launch the gazebo environment:
+1. Launch the gazebo simulation environment:
 
 	```
-	roslaunch gilbreth_gazebo gilbreth.launch
+  	roscd gilbreth_gazebo
+  	source scripts/env_setup.bash
+	roslaunch gilbreth_gazebo gilbreth.launch rviz:=false
 	```
+
+  	- The **source scripts/env_setup.bash** command sets up environment variables needed
+  	by the gazebo simulator.  
+    - Use "rviz:=true" to show rviz
+  	
 1. Activate the gripper:
 
 	```
-	rosservice call /gilbreth/gripper/control "enable: <true/false>"
+	rosservice call /gilbreth/gripper/control "enable: true"
 	```
+    Use "false" in order to turn off the gripper
+
 1. Activate the conveyor:
 
 	```
-	rosservice call /gilbreth/conveyor/control "state: power: <(0.0 - 100.0)>"
+	rosservice call /gilbreth/conveyor/control "state: power: 100.0"
 	```
+    The "power" can range from 0.0 to 100.0.  Use 0.0 to stop the conveyor
 
-1. Control the conveyor part spawner:
+1. Start the part spawner:
 	
 	```
-	rosservice call /[start/stop]_spawn
+	rosservice call /start_spawn "{}"
+	```
+    This command will make parts appear on the conveyor at random intervals.
+    
+1. Stop the part spawner
+	```
+	rosservice call /stop_spawn "{}"
 	```
