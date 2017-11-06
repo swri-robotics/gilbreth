@@ -4,7 +4,7 @@
 #include "gilbreth_gazebo/urdf_creator.h"
 #include <random>
 #include <ros/package.h>
-#include <xmlrpcpp/XmlRpcException.h>
+#include <XmlRpcException.h>
 #include <tf/transform_datatypes.h>
 
 const static std::string GAZEBO_SPAWN_SERVICE = "gazebo/spawn_urdf_model";
