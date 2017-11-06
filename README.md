@@ -51,10 +51,12 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 	```
 
 ### View the URDF
-
-	```
-	roslaunch urdf_tutorial xacrodisplay.launch model:=$(rospack find gilbreth_support)/urdf/gilbreth.xacro
-	```
+	
+	
+	
+   ```
+      roslaunch urdf_tutorial display.launch model:=$(rospack find gilbreth_support)/urdf/gilbreth.xacro
+   ```	
     
    It may be necessary to select "world" in the "Fixed Frame" drop down in the rviz window.
     
@@ -92,7 +94,7 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 	```
 	rosservice call /start_spawn "{}"
 	```
-    This command will make parts appear on the conveyor at random intervals.
+    This command will make parts appear on the conveyor at random intervals. The frequency, types of parts and other properties can be configured in this [yaml file](gilbreth_gazebo/config/conveyor_objects.yaml)
     
 1. Stop the part spawner
 	```
