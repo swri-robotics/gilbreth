@@ -1,16 +1,16 @@
 part_list:
- - name: disk_part 
-   path: /model/disk_part.pcd
-   pick_pose: [0.002245, 0.089798, 0.661576, 0.0, 3.14159, 0.0] #[x,y,z,rx,ry,rz]
  - name: gear_part
    path: /model/gear_part.pcd
-   pick_pose: [-0.001734, 0.021963, 0.681315, 0.0, 3.14159, 0.0]
+   pick_pose: [-0.002791, 0.021766, 0.657894, 0.0, 3.14159, 0.0] #[x,y,z,rx,ry,rz]
  - name: piston_rod_part
    path: /model/piston_rod_part.pcd
-   pick_pose: [0.065680, 0.082248, 0.697500, 0.0, 3.14159, 0.0] 
- - name: gasket_part
-   path: /model/gasket_part.pcd
-   pick_pose: [-0.050156, -0.009801, 0.679571, 0.0, 3.14159, 0.0] 
+   pick_pose: [-0.016955, -0.015786, 0.689177, 0.0, 3.14159, 0.0] 
  - name: pulley_part
    path: /model/pulley_part.pcd
-   pick_pose: [-0.002247, 0.074156, 0.662229, 0.0, 3.14159, 0.0] 
+   pick_pose: [-0.025238, 0.080200, 0.661113, 0.0, 3.14159, 0.0] 
+ - name: gasket_part
+   path: /model/gasket_part.pcd
+   pick_pose: [-0.116708, 0.093935, 0.671089, 0.0, 3.14159, 0.0] 
+ - name: disk_part 
+   path: /model/disk_part.pcd
+   pick_pose: [-0.001646, 0.121226, 0.646602, 0.0, 3.14159, 0.0] 

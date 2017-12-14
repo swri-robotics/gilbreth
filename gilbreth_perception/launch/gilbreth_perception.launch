@@ -9,5 +9,6 @@
        <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
        <param name="package_path" value="$(find gilbreth_perception)"/>
     </node>
+    <node pkg="gilbreth_perception" name="kinect_publisher" type="kinect_publisher"/>
 </launch>
 

@@ -34,6 +34,9 @@ target_link_libraries(segmentation_node ${catkin_LIBRARIES})
 
 add_executable(recognition_node src/recognition_node.cpp)
 target_link_libraries(recognition_node ${catkin_LIBRARIES})
+
+add_executable(kinect_publisher src/kinect_publisher.cpp)
+target_link_libraries(kinect_publisher ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############

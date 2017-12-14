@@ -34,12 +34,12 @@
     <joint name="${prefix}world_joint" type="fixed">
       <parent link="${prefix}world_interface" />
       <child link="${prefix}base_link" />
-      <origin xyz="1.2 3.5 1.65" rpy="0 ${radians(90)} -${radians(90)}" />
+      <origin xyz="1.6 2.8 0.925" rpy="0 0 3.14159265359" />
     </joint>
     <joint name="${prefix}joint_1" type="fixed">
       <parent link="${prefix}base_link" />
       <child link="${prefix}optical_link" />
-      <origin xyz="0 0 0.025" rpy="0 0 0" />
+      <origin xyz="0.025 0 0.00" rpy="0 0 0" />
     </joint>
   </xacro:macro>
 </robot>
