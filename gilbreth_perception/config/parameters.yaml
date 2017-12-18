@@ -1,5 +1,6 @@
 parameters:
   descr_rad: 0.06
+  k_nearest_neighbors: 10
   down_sample: 0.002
   key_point_sampling: 0.01
   #ICP

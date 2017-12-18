@@ -52,6 +52,7 @@ public:
     cg_thresh = 8.0;
     print_detailed_info = false;
     key_point_sampling = 0.006;
+    k_nearest_neighbors= 10;
 
     pub_tf = nh.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
     loadParameter();
@@ -75,6 +76,7 @@ public:
     print_detailed_info = switch_map["print_detailed_info"];
     descr_dis_thrd = parameter_map["descr_dis_thrd"];
     key_point_sampling = parameter_map["key_point_sampling"];
+    k_nearest_neighbors = parameter_map["k_nearest_neighbors"];
   }
 
   void loadModel() {
@@ -159,7 +161,7 @@ public:
 
     for (int i = 0; i < model_list.size(); i++) {
       pcl::PointCloud<NormalType>::Ptr model_normals(new pcl::PointCloud<NormalType>());
-      norm_est.setKSearch(10);
+      norm_est.setKSearch(k_nearest_neighbors);
       norm_est.setSearchMethod(tree);
       norm_est.setInputCloud(model_list[i]);
       norm_est.compute(*model_normals);
@@ -217,7 +219,7 @@ public:
     pcl::NormalEstimationOMP<PointType, NormalType> norm_est;
     pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree<PointType>());
     norm_est.setSearchMethod(tree);
-    norm_est.setKSearch(10);
+    norm_est.setKSearch(k_nearest_neighbors);
     norm_est.setInputCloud(scene);
     norm_est.compute(*scene_normals);
 
@@ -448,6 +450,7 @@ private:
   float cg_thresh;
   bool print_detailed_info;
   float key_point_sampling;
+  int k_nearest_neighbors;
 };
 
 int main(int argc, char **argv) {
