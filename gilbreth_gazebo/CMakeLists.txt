@@ -35,6 +35,7 @@ add_message_files(
   FILES
     ConveyorBeltState.msg
     VacuumGripperState.msg
+    Proximity.msg
 )
 
 add_service_files(
@@ -165,6 +166,34 @@ add_dependencies(${ros_vacuum_gripper_plugin_name}
 #  ARCHIVE DESTINATION lib
 #  LIBRARY DESTINATION lib
 #  RUNTIME DESTINATION bin)
+
+# Create the libProximityRayPlugin.so library.
+set(proximity_ray_plugin_name ProximityRayPlugin)
+add_library(${proximity_ray_plugin_name} src/plugins/ProximityRayPlugin.cc)
+target_link_libraries(${proximity_ray_plugin_name}
+  ${GAZEBO_LIBRARIES}
+)
+install(TARGETS ${proximity_ray_plugin_name}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+# Create the libROSProximityRayPlugin.so library.
+set(ros_proximity_ray_plugin_name ROSProximityRayPlugin)
+add_library(${ros_proximity_ray_plugin_name} src/plugins/ROSProximityRayPlugin.cc)
+target_link_libraries(${ros_proximity_ray_plugin_name}
+  ${proximity_ray_plugin_name}
+  ${GAZEBO_LIBRARIES}
+)
+add_dependencies(${ros_proximity_ray_plugin_name}
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+)
+install(TARGETS ${ros_proximity_ray_plugin_name}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 # Create the libConveyorBeltPlugin.so library.
 set(conveyor_belt_plugin_name ConveyorBeltPlugin)
