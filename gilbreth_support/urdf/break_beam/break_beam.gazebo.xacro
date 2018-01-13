@@ -18,8 +18,8 @@
             <horizontal>
               <samples>50</samples>
               <resolution>1</resolution>
-              <min_angle>-${radians(20)}</min_angle>
-              <max_angle>${radians(20)}</max_angle>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
             </horizontal>
           </scan>
           <range>
@@ -34,7 +34,7 @@
           </noise>
         </ray>
         <always_on>1</always_on>
-        <plugin name="${prefix}controller" filename="libgazebo_ros_laser.so" >
+        <plugin name="${prefix}controller" filename="libROSProximityRayPlugin.so" >
           <topicName>laser/scan</topicName>
           <frameName>${prefix}optical_link</frameName>
         </plugin>
