@@ -11,15 +11,15 @@
 
       <sensor name="${prefix}sensor" type="ray">
         <pose>0 0 0 0 0 0</pose>
-
-<!--        <update_rate>10.0</update_rate> -->
-<!--        <ray>
+        <visualize>true</visualize>
+        <update_rate>10.0</update_rate>
+        <ray>
           <scan>
             <horizontal>
               <samples>50</samples>
               <resolution>1</resolution>
-              <min_angle>-${radians(20)}</min_angle>
-              <max_angle>${radians(20)}</max_angle>
+              <min_angle>0</min_angle>
+              <max_angle>0</max_angle>
             </horizontal>
           </scan>
           <range>
@@ -33,41 +33,15 @@
             <stddev>0.01</stddev>
           </noise>
         </ray>
--->
         <always_on>1</always_on>
-        <visualize>true</visualize>
         <plugin name="${prefix}controller" filename="libROSProximityRayPlugin.so" >
-          <robotNamespace>gilbreth</robotNamespace>
-          <time_delay>0.05</time_delay><!-- this modifies the update rate of the ray sensor -->
+          <topicName>laser/scan</topicName>
+          <frameName>${prefix}optical_link</frameName>
         </plugin>
-        <ray>
-          <range>
-            <min>0.0</min>
-            <max>1.0</max> <!-- this represents the distance at which the reflector's placed. max 12m -->
-            <resolution>0.001</resolution>
-          </range>
-          <scan>
-            <horizontal>
-              <samples>1</samples>
-              <resolution>1</resolution>
-              <min_angle>0</min_angle>
-              <max_angle>0</max_angle>
-            </horizontal>
-          </scan>
-          <noise>
-            <type>gaussian</type>
-            <mean>0.0</mean>
-            <stddev>0.001</stddev>
-          </noise>
-        </ray>
-
-        <visualize>true</visualize>
-        <always_on>1</always_on>
-      </sensor>      
+      </sensor>
     </gazebo>
 
     <gazebo>
-      <gravity>false</gravity>
       <static>true</static>
     </gazebo>
 
