@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   sensor_msgs
   gilbreth_msgs
+  gilbreth_gazebo
 )
 
 ###################################

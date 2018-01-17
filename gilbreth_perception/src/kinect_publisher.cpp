@@ -1,7 +1,7 @@
 // This node is a kinect camera publisher, which publishes the point cloud data once the laser beam is triggered.
 // It could be later replaced by a plugin in Gazebo.
 
-#include <osrf_gear/Proximity.h>
+#include <gilbreth_gazebo/Proximity.h>
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 
@@ -15,7 +15,7 @@ public:
   }
 
   //callback function for break beam subscriber
-  void break_beam_callback(const osrf_gear::Proximity::ConstPtr &msg) {
+  void break_beam_callback(const gilbreth_gazebo::Proximity::ConstPtr &msg) {
     if (msg->object_detected) { // If there is an object in laser break beam.
       ROS_INFO("Break beam triggered.");
       kinect_publisher.publish(kinect_data);
