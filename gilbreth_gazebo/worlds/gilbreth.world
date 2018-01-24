@@ -9,7 +9,8 @@
     </gui>
 
     <physics type="ode">
-      <real_time_update_rate>0</real_time_update_rate>
+      <real_time_factor>1</real_time_factor>
+      <!--real_time_update_rate>0</real_time_update_rate-->
     </physics>
 
     <!-- Disable shadows. -->
