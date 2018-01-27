@@ -57,7 +57,7 @@ class robot_execution:
             print "Moving robot to waiting pose."
             self.group.execute(waiting_plan)
         else:
-            rospy.logerr("Motion Plan Failed time: Current Pose ==> Pick Approach.")
+            rospy.logerr("Motion Plan Failed time: Current Pose ==> Waiting Pose.")
 
     ## callback functions
     def gripper_callback(self, gripper_data):
