@@ -1,5 +1,13 @@
 <?xml version="1.0"?>
+<!-- a demo shows the object perception results-->
 <launch>
+    <!-- load kinect_publisher node and start the conveyor belt -->
+    <node pkg="gilbreth_grasp_planning" name="kinect_publisher_node" type="kinect_publisher"/>
+    <node pkg="gilbreth_grasp_planning"  name="start_conveyor_node" type="start_conveyor"/>
+
+    <!-- load gilbreth _perception nodes -->
+    <node pkg="tf" type="static_transform_publisher" name="sensor_tf_publisher" args="1.1 3.3 2.3 0.70711 -0.70711 0 0 world_frame sensor_frame 100" />
+
     <remap from="scene_point_cloud" to="/gilbreth/kinect_points"/>
     <node pkg="gilbreth_perception" name="segmentation_node" type="segmentation_node">
       <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
@@ -9,6 +17,4 @@
        <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
        <param name="package_path" value="$(find gilbreth_perception)"/>
     </node>
-    <!--node pkg="gilbreth_perception" name="kinect_publisher" type="kinect_publisher"/-->
 </launch>
-

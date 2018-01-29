@@ -40,9 +40,9 @@ int main(int argc, char **argv) {
   //Instance object detection class;
   kinectPublisherClass kinect_publisher_class(node);
 
-  //Subscribe to laser beam topic "/ariac/break_beam_change"
-  ros::Subscriber break_beam_subscriber = node.subscribe("/gilbreth/break_beam_sensor_change", 10, &kinectPublisherClass::break_beam_callback, &kinect_publisher_class);
-  //Subscribe to original point cloud data "/camera1/depth/points"
+  //Subscribe to laser beam topic "/break_beam_change"
+  ros::Subscriber break_beam_subscriber = node.subscribe("/break_beam_sensor_change", 10, &kinectPublisherClass::break_beam_callback, &kinect_publisher_class);
+  //Subscribe to original point cloud data "/depth_camera_/depth_camera_/depth/points"
   ros::Subscriber kinect_callback = node.subscribe("/depth_camera_/depth_camera_/depth/points", 10, &kinectPublisherClass::kinect_callback, &kinect_publisher_class);
 
   ros::spin();

@@ -41,5 +41,7 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
 
   <node if="$(arg rviz)" name="rviz" pkg="rviz" type="rviz" args="-d $(find gilbreth_support)/config/gilbreth.rviz"/>
+  <!-- Launch Rviz to check robot controller -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gilbreth_support)/config/gilbreth.rviz"/>
 
 </launch>
