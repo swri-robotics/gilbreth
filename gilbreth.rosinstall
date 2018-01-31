@@ -1,7 +1,7 @@
 - git:
     local-name: gilbreth
-    uri: https://github.com/mbharatheesha/gilbreth.git
-    version: fix_osrf_gear_dep
+    uri: https://github.com/swri-robotics/gilbreth.git
+    version: kinetic-devel
 - git:
     local-name: universal_robot
     uri: https://github.com/ros-industrial/universal_robot.git
