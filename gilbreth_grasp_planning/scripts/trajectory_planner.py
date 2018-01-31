@@ -15,8 +15,25 @@ from gilbreth_msgs.msg import RobotTrajectories
 from moveit_msgs.msg import RobotState
 from std_msgs.msg import Duration
 
+# Global variables (don't do this at home)
 tool_poses = TargetToolPoses()
 trajectories_msgs = RobotTrajectories()
+ARM_GROUP_NAME = 'robot_rail'
+MOVEIT_PLANNING_SERVICE = 'plan_kinematic_path'
+
+def waitForMoveGroup(wait_time = 10.0):
+
+  ready = False
+  try:
+    rospy.wait_for_service(MOVEIT_PLANNING_SERVICE,wait_time)
+    ready = True
+  except rospy.ROSException as expt:
+    pass
+
+  except rospy.ROSInterruptionException as expt:
+    pass
+    
+  return ready
 
 ## Initialize robot, scene, move group and Rviz
 def robot_init():
@@ -29,17 +46,19 @@ def robot_init():
     max_planning_count = 5
 
     ## Instantiate "robot_rail" chain as a MoveGroupCommander object.
-    group = moveit_commander.MoveGroupCommander("robot_rail")
+    group = moveit_commander.MoveGroupCommander(ARM_GROUP_NAME)
     ## Basic Information
-    print "======Getting Robot Information======"
-    print "======Reference frame: %s" % group.get_planning_frame()
-    print "======End effector: %s" % group.get_end_effector_link() 
-    print "======Robot Groups:"
-    print robot.get_group_names()
-    print "======Printing robot state"
-    print robot.get_current_state()
-    print "====================================="
-    print "======Ready for Motion Planning======"
+    rospy.loginfo( "====== Getting Robot Information======")
+    rospy.loginfo( "====== Reference frame: %s" % group.get_planning_frame())
+    rospy.loginfo( "====== End effector: %s" % group.get_end_effector_link() )
+    rospy.loginfo( "====== Robot Groups:" )
+    rospy.loginfo( robot.get_group_names())
+    rospy.loginfo( "====== Current State")
+    st = robot.get_current_state().joint_state
+    rospy.loginfo("- Joints Names:\t%s"%( str(st.name) ))
+    rospy.loginfo("- Current Values:\t%s"%( str(st.position) ))
+    rospy.loginfo( "=====================================")
+    rospy.loginfo( "====== Ready for Motion Planning======")
 
 
     global display_trajectory_publisher, robot_trajectories_publisher
@@ -229,7 +248,14 @@ def tool_poses_callback(data):
 if __name__=='__main__':
     try:
         moveit_commander.roscpp_initialize(sys.argv)
-        rospy.init_node('motion_planner',anonymous=True)
+        rospy.init_node('trajectory_planner',anonymous=False)
+
+        rospy.loginfo("Waiting for move group")
+        if waitForMoveGroup():
+          rospy.loginfo("Found move group node, proceeding")
+        else:
+          rospy.logerr("Timed out waiting for move group node, exiting ...")
+          sys.exit(-1)
     
         ## a TargetToolPoses subscriber
         rospy.Subscriber('/gilbreth/target_tool_poses', TargetToolPoses, tool_poses_callback)

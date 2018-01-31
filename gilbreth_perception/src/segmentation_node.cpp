@@ -115,7 +115,8 @@ int main(int argc, char **argv) {
   ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("scene_point_cloud", 1, cloudCb);
   // ROS publisher
   pub = nh.advertise<sensor_msgs::PointCloud2>("segmentation_result", 10);
-
+  ROS_INFO("Segmentation Node subscribed to %s",pub.getTopic().c_str());
+  ROS_INFO("Segmentation Node Ready ...");
   // Spin
 
   ros::spin();
