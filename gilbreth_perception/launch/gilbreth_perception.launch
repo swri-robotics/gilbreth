@@ -1,14 +1,18 @@
 <?xml version="1.0"?>
 <launch>
-    <remap from="scene_point_cloud" to="/gilbreth/kinect_points"/>
-    <node pkg="gilbreth_perception" name="segmentation_node" type="segmentation_node">
-      <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
-    </node>
-    <node pkg="gilbreth_perception" name="recognition_node" type="recognition_node">
-       <rosparam command="load" file="$(find gilbreth_perception)/config/model_list.yaml"/>
-       <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
-       <param name="package_path" value="$(find gilbreth_perception)"/>
-    </node>
-    <!--node pkg="gilbreth_perception" name="kinect_publisher" type="kinect_publisher"/-->
+  <arg name="spawn_window" default="false"/>  <!-- run the nodes in their own terminal window -->
+  <arg name="terminal_cmd" default="xterm -e" if="$(arg spawn_window)"/>
+  <arg name="terminal_cmd" default="" unless="$(arg spawn_window)"/>
+
+  <remap from="scene_point_cloud" to="/gilbreth/kinect_points"/>
+  <node pkg="gilbreth_perception" name="segmentation_node" type="segmentation_node" launch-prefix="$(arg terminal_cmd)" output="screen">
+    <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
+  </node>
+
+  <node pkg="gilbreth_perception" name="recognition_node" type="recognition_node" launch-prefix="$(arg terminal_cmd)" output="screen">
+    <rosparam command="load" file="$(find gilbreth_perception)/config/model_list.yaml"/>
+    <rosparam command="load" file="$(find gilbreth_perception)/config/parameters.yaml"/>
+    <param name="package_path" value="$(find gilbreth_perception)"/>
+  </node>
 </launch>
 
