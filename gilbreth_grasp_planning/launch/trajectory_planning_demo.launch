@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <!--node name="rviz" pkg="rviz" type="rviz" args="-d $(find gilbreth_support)/config/gilbreth.rviz"/-->
-    <node pkg="gilbreth_grasp_planning" name="trajectory_planning_node" type="trajectory_planner.py" output="screen"/>
-</launch>

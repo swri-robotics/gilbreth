@@ -87,12 +87,14 @@ public:
     ph.getParam("part_list", model_map);
     ph.getParam("package_path", package_path);
 
+    ROS_INFO("Loading Point Cloud Models");
     std::vector<pcl::PointCloud<PointType>::Ptr> model_raw_list;
     for (int i = 0; i < model_map.size(); i++) {
       pcl::PointCloud<PointType>::Ptr model_raw(new pcl::PointCloud<PointType>());
       std::string model_path = model_map[i]["path"];
-      if (pcl::io::loadPCDFile(package_path + model_path, *model_raw) < 0) {
-        std::cout << "Error loading model cloud." << std::endl;
+      if (pcl::io::loadPCDFile(package_path + model_path, *model_raw) < 0) 
+      {
+        ROS_ERROR("Error loading model cloud.");
         return;
       }
       model_raw_list.push_back(model_raw);
@@ -105,7 +107,9 @@ public:
       }
       pick_pose.push_back(pick_pose_sub);
     }
+
     // Downsample models
+    ROS_INFO("Preparing Point Cloud Models");
     pcl::VoxelGrid<pcl::PointXYZ> sor;
     for (int i = 0; i < model_raw_list.size(); i++) {
       pcl::PointCloud<PointType>::Ptr model(new pcl::PointCloud<PointType>());
@@ -119,6 +123,7 @@ public:
     }
 
     // if use ICP
+    ROS_INFO("Loading Recognition Method Parameters");
     if (icp) {
       loadICPConfig();
     }
@@ -460,6 +465,7 @@ int main(int argc, char **argv) {
   RecognitionClass recognitionNode(nh);
   // Create a ROS subscriber for the input point cloud
   ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, &RecognitionClass::cloudCallBack, &recognitionNode);
+  ROS_INFO("Recognition Node Ready ...");
   // Spin
   ros::spin();
 }

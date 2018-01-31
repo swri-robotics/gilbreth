@@ -1,10 +1,11 @@
 <?xml version="1.0"?>
-<package>
+<package format="2">
   <name>gilbreth_grasp_planning</name>
   <version>0.0.0</version>
   <description>The grasp planning package module</description>
 
   <maintainer email="jrgnichodeve@gmail.com">Jorge Nicho</maintainer>
+  <author email="alex_zyz@hotmail.com">Yizhe Zhang</author>
   <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>

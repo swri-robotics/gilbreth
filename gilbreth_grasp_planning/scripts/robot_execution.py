@@ -8,24 +8,45 @@ import math
 import moveit_commander
 import moveit_msgs.msg
 import geometry_msgs.msg
+import copy
 
 from gilbreth_msgs.msg import RobotTrajectories
 from gilbreth_gazebo.msg import VacuumGripperState
 from gilbreth_gazebo.srv import VacuumGripperControl
 from geometry_msgs.msg import Pose
 
+ROBOT_TRAJ_TOPIC='gilbreth/robot_trajectories'
+GRIPPER_STATE_TOPIC='gilbreth/gripper/state'
+GRIPPER_SERIVE_TOPIC='gilbreth/gripper/control'
+ARM_GROUP_NAME = 'robot_rail'
+MOVEIT_PLANNING_SERVICE = 'plan_kinematic_path'
 
-class robot_execution:
+def waitForMoveGroup(wait_time = 10.0):
+
+  ready = False
+  try:
+    rospy.wait_for_service(MOVEIT_PLANNING_SERVICE,wait_time)
+    ready = True
+  except rospy.ROSException as expt:
+    pass
+
+  except rospy.ROSInterruptionException as expt:
+    pass
+    
+  return ready
+
+
+class RobotExecution:
 
     def __init__(self):
-        self.group = moveit_commander.MoveGroupCommander("robot_rail")
+        self.group = moveit_commander.MoveGroupCommander(ARM_GROUP_NAME)
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.group.set_planning_time(1.0)
 
-        self.trajectory_sub = rospy.Subscriber('/gilbreth/robot_trajectories', RobotTrajectories, self.trajectory_callback)
-        self.gripper_sub = rospy.Subscriber('/gilbreth/gripper/state', VacuumGripperState, self.gripper_callback)
-        self.gripper_client = rospy.ServiceProxy('/gilbreth/gripper/control', VacuumGripperControl)
+        self.trajectory_sub = rospy.Subscriber(ROBOT_TRAJ_TOPIC, RobotTrajectories, self.trajectory_callback)
+        self.gripper_sub = rospy.Subscriber(GRIPPER_STATE_TOPIC, VacuumGripperState, self.gripper_callback)
+        self.gripper_client = rospy.ServiceProxy(GRIPPER_SERIVE_TOPIC, VacuumGripperControl)
 
         self.gripper_state = VacuumGripperState()
         self.robot_trajectory = RobotTrajectories()
@@ -53,9 +74,11 @@ class robot_execution:
 
         ## if trajectory is valid, move the robot
         if waiting_plan:
+            
             rospy.loginfo("Motion Plan Success: Current Pose ==> Waiting Pose.")
-            print "Moving robot to waiting pose."
-            self.group.execute(waiting_plan)
+            if self.group.execute(waiting_plan):
+              rospy.loginfo("Moved Robot to Waiting Pose")
+
         else:
             rospy.logerr("Motion Plan Failed time: Current Pose ==> Waiting Pose.")
 
@@ -64,8 +87,8 @@ class robot_execution:
         self.gripper_state = gripper_data
         
     def trajectory_callback(self,trajectory_data):
-        if trajectory_data:        
-            self.robot_trajectory = trajectory_data
+        if trajectory_data is not None:        
+            self.robot_trajectory = copy.deepcopy(trajectory_data)
             self.EXECUTE = True
             print "EXECUTING:%s" %self.EXECUTE 
 #            print self.EXECUTE
@@ -73,7 +96,7 @@ class robot_execution:
     ## enable vacuum gripper suction cup
     def enable_gripper(self):
         print "Enabling Vacuum Gripper..."
-        rospy.wait_for_service('/gilbreth/gripper/control')
+        rospy.wait_for_service(GRIPPER_SERIVE_TOPIC)
         try:
             resp = self.gripper_client(enable = True)
             print "Gripper Enabling Success "
@@ -83,7 +106,7 @@ class robot_execution:
     ## disable vacuum gripper suction cup
     def disable_gripper(self):
         print "Disabling Vacuum Gripper..."
-        rospy.wait_for_service('/gilbreth/gripper/control')
+        rospy.wait_for_service(GRIPPER_SERIVE_TOPIC)
         try:
             resp = self.gripper_client(enable = False)
             print "Gripper Disabling Success "
@@ -103,6 +126,21 @@ class robot_execution:
     ## execute the robot based on robot_trajectories
     def execute_robot(self):
 
+      class ScopeExit(object):
+        def __init__(self,data):
+          self.data_ = data
+
+        def __enter__(self):
+          return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+          self.data_ = None
+
+      with ScopeExit(self.robot_trajectory) as sc:
+
+        if self.robot_trajectory is None:
+          return
+            
         if self.EXECUTE:
             print "Moving robot from current pose to pick approach pose"
             approach_dur = self.robot_trajectory.execution_duration[0]
@@ -160,10 +198,19 @@ def main(args):
     moveit_commander.roscpp_initialize(sys.argv)
     rospy.init_node('robot_execution',anonymous=True)
     rate = rospy.Rate(10)
-    test = robot_execution()
-    test.goto_waiting_pose()
+
+    rospy.loginfo("Waiting for move group")
+    if waitForMoveGroup():
+      rospy.loginfo("Found move group node, proceeding")
+    else:
+      rospy.logerr("Timed out waiting for move group node, exiting ...")
+      sys.exit(-1)
+
+    rb_exec = RobotExecution()
+    rb_exec.goto_waiting_pose()
+
     while not rospy.is_shutdown():
-        test.execute_robot()
+        rb_exec.execute_robot()
         rate.sleep()
 
 

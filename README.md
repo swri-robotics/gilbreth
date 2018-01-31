@@ -40,7 +40,7 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 	catkin build
 	```
 
-## Running Gilbreth
+## Visualize The Simulation Enviroment
 
 ### Setup
 - Source the catkin workspace 
@@ -61,7 +61,7 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
    It may be necessary to select "world" in the "Fixed Frame" drop down in the rviz window.
     
 
-### Run the simulation environment
+### Run the Gazebo simulation environment
 
 1. Launch the gazebo simulation environment:
 
@@ -99,4 +99,6 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 1. Stop the part spawner
 	```
 	rosservice call /stop_spawn "{}"
-	```
+
+### Run the Main Application
+ - [See here](DEMO.md)

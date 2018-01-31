@@ -1,6 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-    <rosparam command="load" file="$(find gilbreth_grasp_planning)/config/tool_plan_param.yaml" ns="gilbreth/tool_plan"/>    
-    <!--include file ="$(find gilbreth_grasp_planning)/launch/perception_demo.launch"/-->
-    <node pkg="gilbreth_grasp_planning" name="tool_planning_node" type="tool_planner.py" output="screen"/>
-</launch>
