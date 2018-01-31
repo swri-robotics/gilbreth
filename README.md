@@ -101,5 +101,4 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 	rosservice call /stop_spawn "{}"
 
 ### Run the Main Application
- - [See here](Demo.md)
-	```
+ - [See here](DEMO.md)
