@@ -5,16 +5,25 @@
 
 ## Application
 ### Application Bringup
-- Bring up the application components
+1. Bring up the application components
   ```
   roslaunch gilbreth_application application_setup.launch
   ```
   - Both Gazebo and Rviz will be launched, wait until both of these application have started before moving on 
     to the next step. 
 
+2. Verify robot controller
+  Run the robot execution node and verify that the robot arm and rail joint are moved to the home position
+  ```
+  rosrun gilbreth_grasp_planning robot_execution.py
+  ```
+  - If the robot or rail did not move then start again from step *1*.
+
   * (Optional) Use Rviz to test the robot controller by dragging the end-effector to another pose and click 'plan and execute' in moveit panel.
     If the robot failed to move to the target pose, then the robot controller is not working. 
     Close Gazebo and Rviz and then relaunch the environment.
+
+3. Close the robot_execution.py node by pressing Ctrl+C in the terminal
 
 ### Application Run
 

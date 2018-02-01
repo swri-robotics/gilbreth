@@ -64,7 +64,7 @@ class RobotExecution:
 
 
     def goto_waiting_pose(self):
-        print "Start Motion Planning: Current Pose ==> Waiting Pose."
+        rospy.loginfo("Start Motion Planning: Current Pose ==> Waiting Pose.")
         ## Set start and target pose
         self.group.set_start_state_to_current_state()
         self.group.set_pose_target(self.waiting_pose)
@@ -88,64 +88,67 @@ class RobotExecution:
         
     def trajectory_callback(self,trajectory_data):
         if trajectory_data is not None:        
+            rospy.loginfo('Received new trajectory')
             self.robot_trajectory = copy.deepcopy(trajectory_data)
             self.EXECUTE = True
-            print "EXECUTING:%s" %self.EXECUTE 
-#            print self.EXECUTE
+        else:
+            rospy.logerr('Received trajectory is invalid')
         
     ## enable vacuum gripper suction cup
     def enable_gripper(self):
-        print "Enabling Vacuum Gripper..."
+        rospy.loginfo("Enabling Vacuum Gripper...")
         rospy.wait_for_service(GRIPPER_SERIVE_TOPIC)
         try:
             resp = self.gripper_client(enable = True)
-            print "Gripper Enabling Success "
+            rospy.loginfo("Gripper Enabling Success ")
         except rospy.ServiceException, e:
-            print "Service call failed: %s" %e
+            rospy.loginfo("Service call failed: %s" %e)
 
     ## disable vacuum gripper suction cup
     def disable_gripper(self):
-        print "Disabling Vacuum Gripper..."
+        rospy.loginfo("Disabling Vacuum Gripper...")
         rospy.wait_for_service(GRIPPER_SERIVE_TOPIC)
         try:
             resp = self.gripper_client(enable = False)
-            print "Gripper Disabling Success "
+            rospy.loginfo("Gripper Disabling Success ")
         except rospy.ServiceException, e:
-            print "Service call failed: %s" %e
+            rospy.loginfo("Service call failed: %s" %e)
 
     def gripper_attached(self, pick_dead):
         while (rospy.Time.now() < pick_dead + rospy.Duration(2.0)):
-            print self.gripper_state.attached
+            rospy.loginfo('Gripper State: %i'%(self.gripper_state.attached))
             if self.gripper_state.attached:
                 return True
             else:
                 rospy.sleep(0.2)
-        print "Nothing Attached"
+        rospy.loginfo("Nothing Attached")
         return self.gripper_state.attached
     
     ## execute the robot based on robot_trajectories
     def execute_robot(self):
 
       class ScopeExit(object):
-        def __init__(self,data):
-          self.data_ = data
+        def __init__(self,obj):
+          self.obj_ = obj
 
         def __enter__(self):
           return self
 
         def __exit__(self, exc_type, exc_value, traceback):
-          self.data_ = None
+          self.obj_.robot_trajectory = None
+          self.obj_.EXECUTE = False
+          return True
 
-      with ScopeExit(self.robot_trajectory) as sc:
+      if self.robot_trajectory is None:
+        return
 
-        if self.robot_trajectory is None:
-          return
-            
+      with ScopeExit(self) as sc:       
+          
         if self.EXECUTE:
-            print "Moving robot from current pose to pick approach pose"
+            rospy.loginfo("Moving robot from current pose to pick approach pose")
             approach_dur = self.robot_trajectory.execution_duration[0]
             self.group.execute(self.robot_trajectory.cur_to_approach)
-            print "Approaching duration is : %f" % approach_dur.to_sec()
+            rospy.loginfo("Approaching duration is : %f" % approach_dur.to_sec())
             rospy.sleep(approach_dur.to_sec())
     
             ## check if can reach pick pose on time    
@@ -159,7 +162,7 @@ class RobotExecution:
                 self.EXECUTE = False
             else:
                 ## Wait to execute robot to pick item
-                print "Waiting to pick object"
+                rospy.loginfo("Waiting to pick object")
                 current_time = rospy.Time.now()
                 wait_dur = pick_deadline.to_sec()-current_time.to_sec()-pick_dur.to_sec()-0.5
                 rospy.sleep(wait_dur)
@@ -167,31 +170,31 @@ class RobotExecution:
                 ## enable gripper for object grasping
                 self.enable_gripper()
 
-                print "Moving robot from approach pose to pick pose"
+                rospy.loginfo("Moving robot from approach pose to pick pose")
                 self.group.execute(self.robot_trajectory.approach_to_pick)
-                print "Picking duration is : %f" % pick_dur.to_sec()
+                rospy.loginfo("Picking duration is : %f" % pick_dur.to_sec())
                 rospy.sleep(pick_dur.to_sec())
 
                 ## check if any object is attached to the vacuum gripper
                 
                 if self.gripper_attached(pick_deadline):
 
-                    print "Executing pick to retreat plan"
+                    rospy.loginfo("Executing pick to retreat plan")
                     self.group.execute(self.robot_trajectory.pick_to_retreat)
                     rospy.sleep(math.ceil(self.robot_trajectory.execution_duration[2].to_sec()))
             
                     rospy.sleep(1)
-                    print "Executing retreat to place plan"
+                    rospy.loginfo("Executing retreat to place plan")
                     self.group.execute(self.robot_trajectory.retreat_to_place)
                     rospy.sleep(math.ceil(self.robot_trajectory.execution_duration[3].to_sec()))
 
-                else:
-    
+                else:  
                     rospy.logerr("Nothing attached to the gripper. Go to home pose now.")
                     self.goto_waiting_pose()
 
                 self.disable_gripper()
-            self.EXECUTE = False   
+
+            #self.EXECUTE = False   
         
 
 def main(args):
