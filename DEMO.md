@@ -15,9 +15,9 @@
 2. Verify robot controller
   Run the robot execution node and verify that the robot arm and rail joint are moved to the home position
   ```
-  rosrun gilbreth_grasp_planning robot_execution.py
+  rosrun gilbreth_grasp_planning test_robot_execution.py
   ```
-  - If the robot or rail did not move then start again from step *1*.
+  - If the robot failed to move then start again from step *1*.
 
   * (Optional) Use Rviz to test the robot controller by dragging the end-effector to another pose and click 'plan and execute' in moveit panel.
     If the robot failed to move to the target pose, then the robot controller is not working. 
