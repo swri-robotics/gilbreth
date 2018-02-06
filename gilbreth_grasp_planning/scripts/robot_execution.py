@@ -35,6 +35,13 @@ def waitForMoveGroup(wait_time = 10.0):
     
   return ready
 
+def curateTrajectory(traj):
+  # This is a hack that fixes the issue reported in the link below
+  # https://github.com/ros-controls/ros_controllers/issues/291
+  if len(traj.joint_trajectory.points) > 0:  
+    rospy.logwarn("Trajectory points list is empty")
+    traj.joint_trajectory.points[0].time_from_start = rospy.Duration(0.01)
+  return traj   
 
 class RobotExecution:
 
@@ -101,7 +108,7 @@ class RobotExecution:
         try:
             resp = self.gripper_client(enable = True)
             rospy.loginfo("Gripper Enabling Success ")
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.loginfo("Service call failed: %s" %e)
 
     ## disable vacuum gripper suction cup
@@ -111,7 +118,7 @@ class RobotExecution:
         try:
             resp = self.gripper_client(enable = False)
             rospy.loginfo("Gripper Disabling Success ")
-        except rospy.ServiceException, e:
+        except rospy.ServiceException as e:
             rospy.loginfo("Service call failed: %s" %e)
 
     def gripper_attached(self, pick_dead):
@@ -141,6 +148,12 @@ class RobotExecution:
 
       if self.robot_trajectory is None:
         return
+      
+      # curating trajectories
+      curateTrajectory(self.robot_trajectory.cur_to_approach)
+      curateTrajectory(self.robot_trajectory.approach_to_pick)
+      curateTrajectory(self.robot_trajectory.pick_to_retreat)
+      curateTrajectory(self.robot_trajectory.retreat_to_place)
 
       with ScopeExit(self) as sc:       
           
