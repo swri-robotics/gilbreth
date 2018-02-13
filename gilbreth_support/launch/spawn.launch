@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="robot_description" command="$(find xacro)/xacro.py $(find gilbreth_support)/urdf/conveyor_objects/gear.xacro" />
+
+  <!-- Spawn a robot into Gazebo -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -x 1.2 -y 0 -z 1.0 -model gear" />
+</launch>

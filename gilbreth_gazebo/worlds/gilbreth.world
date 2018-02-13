@@ -53,5 +53,35 @@
       <pose>1.2 -5.1 1.425 0 0 1.5708</pose>
     </include>
 
+    <include>
+      <name>tray1</name>
+      <uri>model://kit_tray</uri>
+      <pose>-0.3 -2.0 0.6 0 0 0</pose>
+    </include>
+
+    <include>
+      <name>tray2</name>
+      <uri>model://kit_tray</uri>
+      <pose>-0.3 -1.2 0.6 0 0 0</pose>
+    </include>    
+
+    <include>
+      <name>tray3</name>
+      <uri>model://kit_tray</uri>
+      <pose>-0.3 -0.4 0.6 0 0 0</pose>
+    </include>
+
+    <include>
+      <name>tray4</name>
+      <uri>model://kit_tray</uri>
+      <pose>-0.3 0.4 0.6 0 0 0</pose>
+    </include>
+
+    <include>
+      <name>tray5</name>
+      <uri>model://kit_tray</uri>
+      <pose>-0.3 1.2 0.6 0 0 0</pose>
+    </include>
+
   </world>
 </sdf>

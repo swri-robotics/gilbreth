@@ -16,9 +16,8 @@ from moveit_msgs.msg import RobotState
 from std_msgs.msg import Duration
 
 # Global variables (don't do this at home)
-tool_poses = TargetToolPoses()
-trajectories_msgs = RobotTrajectories()
 ARM_GROUP_NAME = 'robot_rail'
+#ROBOT_GROUP_NAME = 'robot_rail'
 MOVEIT_PLANNING_SERVICE = 'plan_kinematic_path'
 
 def waitForMoveGroup(wait_time = 10.0):
@@ -35,220 +34,171 @@ def waitForMoveGroup(wait_time = 10.0):
     
   return ready
 
-## Initialize robot, scene, move group and Rviz
-def robot_init():
-    global robot, scene, group, timeout
-    robot = moveit_commander.RobotCommander()
-    scene = moveit_commander.PlanningSceneInterface()
 
-    global timeout, max_planning_count
-    timeout = 1.0
-    max_planning_count = 5
+class TrajectoryPlanner():
+    def __init__(self):
+        self.robot = moveit_commander.RobotCommander()
+        self.scene = moveit_commander.PlanningSceneInterface()
+        self.timeout = 1.0
+        self.max_planning_count = 5
+        self.group = moveit_commander.MoveGroupCommander(ARM_GROUP_NAME)
+        self.group.set_planning_time(self.timeout)
 
-    ## Instantiate "robot_rail" chain as a MoveGroupCommander object.
-    group = moveit_commander.MoveGroupCommander(ARM_GROUP_NAME)
-    ## Basic Information
-    rospy.loginfo( "====== Getting Robot Information======")
-    rospy.loginfo( "====== Reference frame: %s" % group.get_planning_frame())
-    rospy.loginfo( "====== End effector: %s" % group.get_end_effector_link() )
-    rospy.loginfo( "====== Robot Groups:" )
-    rospy.loginfo( robot.get_group_names())
-    rospy.loginfo( "====== Current State")
-    st = robot.get_current_state().joint_state
-    rospy.loginfo("- Joints Names:\t%s"%( str(st.name) ))
-    rospy.loginfo("- Current Values:\t%s"%( str(st.position) ))
-    rospy.loginfo( "=====================================")
-    rospy.loginfo( "====== Ready for Motion Planning======")
+        self.robot_trajectories_publisher = rospy.Publisher('/gilbreth/robot_trajectories', RobotTrajectories, queue_size = 20)
+        self.tool_poses_sub = rospy.Subscriber('/gilbreth/target_tool_poses', TargetToolPoses, self.tool_poses_callback)
 
+    def tool_poses_callback(self,tool_msg):
+        if tool_msg is not None:
+            rospy.loginfo("Received new tool pose information")
+            self.tool_poses = copy.deepcopy(tool_msg)
+            try:
+                start_time = time.time()
+                if self.motion_planning():
+                    self.compute_execution_dur()
+                    rospy.loginfo("Run time is %f seconds",(time.time()-start_time))
+                    ## Publish robot trajectories messages 
+                    ##self.robot_trajectories_publisher.publish(self.trajectories_msgs)
+                    ##print "Publishing robot trajectories to /gilbreth/robot_trajectories"
+                else:
+                    rospy.logerr("Failed to compute trajectories. Waiting for next objects")
+            except rospy.ROSException as e:
+                rospy.logerr("Failed to compute trajectories: %s"%e)
+            finally:
+                self.tool_poses = None
+                self.trajectories_msgs = None
+        else:
+            rospy.logerr("Tool pose is invalid.")
 
-    global display_trajectory_publisher, robot_trajectories_publisher
-    ## Create a DisplayTrajectory publisher for RViz and debugging
-    display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path', moveit_msgs.msg.DisplayTrajectory, queue_size=20)
-    
-    ## Create a RobotTrajectories publisher for gilbreth execution node
-    robot_trajectories_publisher = rospy.Publisher('/gilbreth/robot_trajectories', RobotTrajectories, queue_size = 20)
-    ## Set moveit planning time to %timeout seconds
-    group.set_planning_time(timeout)
+    def compute_trajectory(self):
+        self.group.set_planning_time(self.timeout)
+        for i in range(self.max_planning_count):
+            plan = self.group.plan()
+            if len(plan.joint_trajectory.points):
+                rospy.loginfo("Motion Plan Success.")
+                return plan
+            else:
+                rospy.logerr("Failed to compute trajectory %d time. Recalculating", i)
+        return False
 
-## The motion planner function use MoveIt to compute the robot trajectories. 
-def motion_planner(tool_poses):
-    ## Compute robot trajectories from current pose to pick_approach pose
-    print "Start Motion Planning: Current ==> Pick Approach."
-    approach_target = tool_poses.pick_approach.pose
+    def motion_planning(self):
+        self.trajectories_msgs = RobotTrajectories()
 
-    ## Set start pose as current robot pose
-    group.set_start_state_to_current_state()
-    ## Get target pose
-    group.set_pose_target(approach_target)
+        ## Current ==> Pick Approach.
+        print "======Start Motion Planning: Current ==> Pick Approach.========"
+        #self.group = moveit_commander.MoveGroupCommander('robot_rail')
+        target = self.tool_poses.pick_approach.pose
+        ## Set start and target pose
+        self.group.set_start_state_to_current_state()
+        self.group.set_pose_target(target)
 
-    ## Do trajectory planning multiple times until find a valid solution
-    for i in range(max_planning_count):
-        ## Motion Planning    
-        approach_plan = group.plan()
+        traj = self.compute_trajectory()
 
-        ## if suceed, jump out of the loop
-        if approach_plan:
-            ## Waiting for RVIZ to display
-            rospy.loginfo("Motion Plan Success: Current ==> Pick Approach. Waiting for RVIZ to display...")
+        if traj:
+            self.trajectories_msgs.cur_to_approach = copy.deepcopy(traj)
+        else:
+            rospy.logerr("Motion Plan Failed. Waiting for next object.")
+            return False
 
-            ## Uncomment to visualize in RViz
-            ## RVIZ visualizion trajectories from current state to approach state        
-            #display_trajectory = moveit_msgs.msg.DisplayTrajectory()
-            #display_trajectory.trajectory_start = robot.get_current_state()
-            #display_trajectory.trajectory.append(approach_plan)
-            #display_trajectory_publisher.publish(display_trajectory);
+        ## Pick Approach ==> Pick
+        print "=====Start Motion Planning: Pick Approach ==> Pick.====="
+        #self.group = moveit_commander.MoveGroupCommander('robot')
+        ## Get start and target pose
+        start_state = RobotState()
+        start_state.joint_state.name = self.trajectories_msgs.cur_to_approach.joint_trajectory.joint_names
+        start_state.joint_state.position = self.trajectories_msgs.cur_to_approach.joint_trajectory.points[-1].positions
+
+        ## Set start and target pose
+        self.group.set_start_state(start_state)
+
+        ## Use cartesian path planning for pick motion
+        #waypoints = []
+        #waypoints.append(copy.deepcopy(approach_target))
+        ## Get target pose
+        target = self.tool_poses.pick_pose.pose
+        #waypoints.append(copy.deepcopy(pick_target))
+
+        self.group.set_pose_target(target)
+
+        traj = self.compute_trajectory()
+        if traj:
+            self.trajectories_msgs.approach_to_pick =  copy.deepcopy(traj)
+        else:
+            rospy.logerr("Motion Plan Failed. Waiting for next object.")
+            return False
         
-            trajectories_msgs.cur_to_approach = approach_plan
 
-            ## uncomment to execute
-            #group.execute(trajectories_msgs.cur_to_approach)
-            break
+        ## Pick  ==> Pick retreat
+        print "=====Start Motion Planning: Pick ==> Pick retreat.====="
+        #self.group = moveit_commander.MoveGroupCommander('robot')
+        ## Get start and target pose
+        start_state = RobotState()
+        start_state.joint_state.name = self.trajectories_msgs.approach_to_pick.joint_trajectory.joint_names
+        start_state.joint_state.position = self.trajectories_msgs.approach_to_pick.joint_trajectory.points[-1].positions
+        target = self.tool_poses.pick_retreat.pose
+
+        ## Set start and target pose
+        self.group.set_start_state(start_state)
+        self.group.set_pose_target(target)
+
+        traj = self.compute_trajectory()
+        if traj:
+            self.trajectories_msgs.pick_to_retreat =  copy.deepcopy(traj)
         else:
-            rospy.logerr("Motion Plan Failed %d time: Current ==> Pick Approach.", i)
-            #return "Motion Plan Fail" Waiting for next object
-            if i == max_planning_count-1:
-                return "Motion Plan Failed. Waiting for next object."
-    
-    ## Compute trajectories from pick approach pose to pick pose
-    print "Start Motion Planning: Pick Approach ==> Pick."
-
-    ## start with approach pose
-    approach_state = RobotState()
-    approach_state.joint_state.name = trajectories_msgs.cur_to_approach.joint_trajectory.joint_names
-    approach_state.joint_state.position = trajectories_msgs.cur_to_approach.joint_trajectory.points[-1].positions
-    group.set_start_state(approach_state)
-
-    ## Use cartesian path planning for pick motion
-    waypoints = []
-    waypoints.append(copy.deepcopy(approach_target))
-    ## Get target pose
-    pick_target = tool_poses.pick_pose.pose
-    waypoints.append(copy.deepcopy(pick_target))
-    
-
-    for i in range(max_planning_count):
-        ## Motion Planning    
-        (approach_to_pick_plan, fraction) = group.compute_cartesian_path(waypoints, 0.01, 0.0)
-    
-        if approach_to_pick_plan:
-            rospy.loginfo("Motion Plan Success: Pick Approach ==> Pick. Waiting for RVIZ to display...")
-
-            trajectories_msgs.approach_to_pick = approach_to_pick_plan
-
-            ## uncomment to execute for debugging
-            #group.execute(trajectories_msgs.approach_to_pick)
-            break
-
-        else:
-            rospy.logerr("Motion Plan Fail: Pick Approach ==> Pick.")
-            if i == max_planning_count-1:
-                return "Motion Plan Failed. Waiting for next object."
-    
-    ## Compute trajectories from pick pose to retreat pose
-    print "Start Motion Planning: Pick ==> Pick Retreat."
-
-    ## start with pick pose
-    pick_state = RobotState()
-    pick_state.joint_state.name = trajectories_msgs.approach_to_pick.joint_trajectory.joint_names
-    pick_state.joint_state.position = trajectories_msgs.approach_to_pick.joint_trajectory.points[-1].positions
-    group.set_start_state(pick_state)
-
-    ## target retreat pose
-    retreat_target = tool_poses.pick_retreat.pose
-    group.set_pose_target(retreat_target)
-
-
-    for i in range(max_planning_count):
-        pick_to_retreat_plan = group.plan()  
-
-        if pick_to_retreat_plan:
-            rospy.loginfo("Motion Plan Success: Pick ==> Pick Retreat. Waiting for RVIZ to display...")
+            rospy.logerr("Motion Plan Failed. Waiting for next object.")
+            return False
         
-            trajectories_msgs.pick_to_retreat = pick_to_retreat_plan
+        ## Pick retreat ==> Place
+        print "=====Start Motion Planning: Retreat ==> Place.====="
+        #self.group = moveit_commander.MoveGroupCommander('robot_rail')
+        ## Get start and target pose
+        start_state = RobotState()
+        start_state.joint_state.name = self.trajectories_msgs.pick_to_retreat.joint_trajectory.joint_names
+        start_state.joint_state.position = self.trajectories_msgs.pick_to_retreat.joint_trajectory.points[-1].positions
+        target = self.tool_poses.place_pose.pose
 
-            ## uncomment to execute robot
-            #group.execute(trajectories_msgs.pick_to_retreat)
-            break
+        ## Set start and target pose
+        self.group.set_start_state(start_state)
+        self.group.set_pose_target(target)
+
+        traj = self.compute_trajectory()
+        if traj:
+            self.trajectories_msgs.retreat_to_place =  copy.deepcopy(traj)
         else:
-            rospy.logerr("Motion Plan Fail: Pick ==> Pick Retreat.")
-            if i == max_planning_count-1:
-                return "Motion Plan Failed. Waiting for next object."
+            rospy.logerr("Motion Plan Failed. Waiting for next object.")
+            return False
 
-    ## Compute trajectories from retreat pose to place pose
-    print "Start Motion Planning: Pick Retreat ==> Place."
+        self.trajectories_msgs.header.stamp = rospy.get_rostime()
+        print "************Successfully plannign all trajectories***********"
+        return True
 
-    ## start with retreat pose
-    retreat_state = RobotState()
-    retreat_state.joint_state.name = trajectories_msgs.pick_to_retreat.joint_trajectory.joint_names
-    retreat_state.joint_state.position = trajectories_msgs.pick_to_retreat.joint_trajectory.points[-1].positions
-    group.set_start_state(retreat_state)
-
-    ## target place pose   
-    place_target = tool_poses.place_pose.pose
-    group.set_pose_target(place_target)
-
-    for i in range(max_planning_count):
-        place_plan = group.plan()   
-
-        if place_plan:
-            rospy.loginfo("Motion Plan Success: Pick Retreat ==> Place. Waiting for RVIZ to display...")
-
-            trajectories_msgs.retreat_to_place = place_plan
-
-            ## uncomment to execute robot
-            #group.execute(trajectories_msgs.retreat_to_place)
-            break
-        else:
-            rospy.logerr("Motion Plan Fail: Pick Retreat ==> Place.")
-
-            if i == max_planning_count-1:
-                return "Motion Plan Failed. Waiting for next object."
-
-    print "============Finish Motion Planning==========="
-    ## Get Motion plan success time 
-    trajectories_msgs.header.stamp = rospy.get_rostime()
-    ## Publish robot trajectories
-
-def compute_waiting_time(trajectories_msgs,tool_poses):
-    ## Get planned robot execution time
-    approach_duration = trajectories_msgs.cur_to_approach.joint_trajectory.points[-1].time_from_start
-    pick_duration = trajectories_msgs.approach_to_pick.joint_trajectory.points[-1].time_from_start
-    retreat_duration = trajectories_msgs.pick_to_retreat.joint_trajectory.points[-1].time_from_start
-    place_duration = trajectories_msgs.retreat_to_place.joint_trajectory.points[-1].time_from_start
+    def compute_execution_dur(self):
+        ## Get planned robot execution time
+        approach_duration = self.trajectories_msgs.cur_to_approach.joint_trajectory.points[-1].time_from_start
+        pick_duration = self.trajectories_msgs.approach_to_pick.joint_trajectory.points[-1].time_from_start
+        retreat_duration = self.trajectories_msgs.pick_to_retreat.joint_trajectory.points[-1].time_from_start
+        place_duration = self.trajectories_msgs.retreat_to_place.joint_trajectory.points[-1].time_from_start
     
-    time_dur = [None] * 4
-    time_dur[0] = approach_duration
-    time_dur[1] = pick_duration
-    time_dur[2] = retreat_duration
-    time_dur[3] = place_duration
+        time_dur = [None] * 4
+        time_dur[0] = approach_duration
+        time_dur[1] = pick_duration
+        time_dur[2] = retreat_duration
+        time_dur[3] = place_duration
 
-    trajectories_msgs.execution_duration = time_dur
-    rospy.loginfo(approach_duration.to_sec())
-    rospy.loginfo(pick_duration.to_sec())
-    rospy.loginfo(retreat_duration.to_sec())
-    rospy.loginfo(place_duration.to_sec())
-  
-    ## Get deadline time for reaching picking pose
-    trajectories_msgs.pick_deadline = tool_poses.pick_pose.header.stamp
-
-    ## Publish robot trajectories messages 
-    robot_trajectories_publisher.publish(trajectories_msgs)
-    print "Publishing robot trajectories to /gilbreth/robot_trajectories"
-
-## A target poses callback function subscribing from the tool pose publisher.
-## When it receives the tool poses, it calls motion planner to compute the trajectories.
-def tool_poses_callback(data):
-    tool_poses = data
-    start_time = time.time()
-    motion_planner(tool_poses)
-    compute_waiting_time(trajectories_msgs,tool_poses)
-    rospy.loginfo("Run time is %f seconds",(time.time()-start_time))
+        self.trajectories_msgs.execution_duration = time_dur
+        
+        rospy.loginfo("Execution dur:%f,%f,%f,%f\n",approach_duration.to_sec(),pick_duration.to_sec(),retreat_duration.to_sec(),place_duration.to_sec())
+    
+        ## Get deadline time for reaching picking pose
+        self.trajectories_msgs.pick_deadline = copy.deepcopy(self.tool_poses.pick_pose.header.stamp)
 
 
+        ## Publish robot trajectories messages 
+        self.robot_trajectories_publisher.publish(self.trajectories_msgs)
+        print "Publishing robot trajectories to /gilbreth/robot_trajectories"
 if __name__=='__main__':
     try:
         moveit_commander.roscpp_initialize(sys.argv)
-        rospy.init_node('trajectory_planner',anonymous=False)
+        rospy.init_node('trajectory_planner')
 
         rospy.loginfo("Waiting for move group")
         if waitForMoveGroup():
@@ -258,9 +208,8 @@ if __name__=='__main__':
           sys.exit(-1)
     
         ## a TargetToolPoses subscriber
-        rospy.Subscriber('/gilbreth/target_tool_poses', TargetToolPoses, tool_poses_callback)
+        traj_planner = TrajectoryPlanner()
         rate = rospy.Rate(10)
-        robot_init()
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
