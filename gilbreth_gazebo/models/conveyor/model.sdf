@@ -85,6 +85,7 @@
       <robot_namespace>/gilbreth</robot_namespace>
       <population_rate_modifier_topic>/gilbreth/population/rate_modifier</population_rate_modifier_topic>
       <link>conveyor_belt::conveyor_belt_moving::belt</link>
+      <max_belt_linear_vel>1.0</max_belt_linear_vel>
       <power>0</power>
     </plugin>
 
