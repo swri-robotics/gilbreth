@@ -22,7 +22,9 @@
   </include>
 
   <!-- Load the URDF into the ROS Parameter Server -->
-  <include file="$(find gilbreth_moveit_config)/launch/move_group.launch"/>
+  <include file="$(find gilbreth_moveit_config)/launch/move_group.launch">
+    <arg name="console_output" value="false"/>
+  </include>
   <include file="$(find gilbreth_support)/launch/load_gilbreth.launch"/>
 
   <!-- Spawn the URDF objects into Gazebo -->

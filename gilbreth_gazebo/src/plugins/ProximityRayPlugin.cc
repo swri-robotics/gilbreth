@@ -165,7 +165,6 @@ bool ProximityRayPlugin::ProcessScan()
 
     if (objectDetected) {
         if (!this->objectDetected) {
-          gzdbg << "Object detected\n";
           stateChanged = true;
         }
         this->objectDetected = true;
@@ -173,7 +172,6 @@ bool ProximityRayPlugin::ProcessScan()
     else
     {
         if (this->objectDetected) {
-          gzdbg << "Object no longer detected\n";
           stateChanged = true;
         }
         this->objectDetected = false;
