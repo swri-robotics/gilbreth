@@ -19,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   tf
+  eigen_conversions
 )
 
 find_package(gazebo REQUIRED)
@@ -129,6 +130,7 @@ set(side_contact_plugin_name SideContactPlugin)
 add_library(${side_contact_plugin_name} src/plugins/SideContactPlugin.cc)
 target_link_libraries(${side_contact_plugin_name}
   ${GAZEBO_LIBRARIES}
+  ${catkin_LIBRARIES}
 )
 #install(TARGETS ${side_contact_plugin_name}
 #  ARCHIVE DESTINATION lib
@@ -230,6 +232,7 @@ add_library(${object_disposal_plugin_name} src/plugins/ObjectDisposalPlugin.cc)
 target_link_libraries(${object_disposal_plugin_name}
   ${GAZEBO_LIBRARIES}
   ${side_contact_plugin_name}
+  ${catkin_LIBRARIES}
 )
 #install(TARGETS ${object_disposal_plugin_name}
 #  ARCHIVE DESTINATION lib
