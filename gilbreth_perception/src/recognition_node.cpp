@@ -97,7 +97,7 @@ public:
       std::string model_path = model_map[i]["path"];
       if (pcl::io::loadPCDFile(package_path + model_path, *model_raw) < 0) 
       {
-        ROS_ERROR("Error loading model cloud.");
+        ROS_INFO("Error loading model cloud.");
         return;
       }
       model_raw_list.push_back(model_raw);
@@ -237,7 +237,7 @@ public:
 
     // Recognition
     if (icp) {
-      std::cerr << "Using ICP" << std::endl;
+      ROS_INFO_STREAM("Using ICP");
       pcl::FPFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> fpfh_est;
       fpfh_est.setSearchMethod(tree);
       fpfh_est.setRadiusSearch(descr_rad);
@@ -270,7 +270,7 @@ public:
         results_temp[j].fitness_score = (float)sac_ia_.getFitnessScore(max_correspondence_distance);
         results_temp[j].final_transformation = sac_ia_.getFinalTransformation();
         if (print_detailed_info) {
-          std::cerr << "model " << j << " FitnessScore " << results_temp[j].fitness_score << std::endl;
+          ROS_INFO_STREAM("model " << j << " FitnessScore " << results_temp[j].fitness_score);
         }
         if (results_temp[j].fitness_score < best_score) {
           min_index = j;
@@ -281,7 +281,7 @@ public:
     }
 
     else {
-      std::cerr << "Using Correspondence Grouping" << std::endl;
+      ROS_INFO_STREAM("Using Correspondence Grouping");
       // Extract Scene Keypoint
       pcl::UniformSampling<PointType> uniform_sampling;
       pcl::PointCloud<PointType>::Ptr scene_keypoints(new pcl::PointCloud<PointType>());
@@ -331,8 +331,8 @@ public:
           }
         }
         if (print_detailed_info) {
-          std::cerr << "Model " << j << " "
-                    << "Correspondence ORG number: " << model_scene_corrs->size() << std::endl;
+          ROS_INFO_STREAM("Model " << j << " "
+                    << "Correspondence ORG number: " << model_scene_corrs->size());
         }
         // clustering
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
@@ -356,26 +356,26 @@ public:
             result.final_transformation = rototranslations[0];
           }
           if (print_detailed_info) {
-            std::cerr << "Model " << j << " "<< "Correspondence number: " << clustered_corrs[0].size() << std::endl;
+            ROS_INFO_STREAM("Model " << j << " "<< "Correspondence number: " << clustered_corrs[0].size());
           }
         }
         else {
           if (print_detailed_info) {
-            std::cerr << "Model " << j << " "<< "Correspondence number: 0" << std::endl;
+            ROS_INFO_STREAM("Model " << j << " "<< "Correspondence number: 0");
           }
         }
       }
     }
 
     if (min_index == -1) {
-      std::cerr << "--------------------------------------------------------------" << std::endl;
-      std::cerr << "No model matching" << std::endl;
-      std::cerr << "--------------------------------------------------------------" << std::endl;
+      ROS_INFO_STREAM("-----------------------------");
+      ROS_INFO_STREAM("No model matching");
+      ROS_INFO_STREAM("-----------------------------");
     }
     else {
-      std::cerr << "--------------------------------------------------------------" << std::endl;
-      std::cerr << "Item_Name: " << result.item_name << std::endl;
-      std::cerr << "--------------------------------------------------------------" << std::endl;
+      ROS_INFO_STREAM("-----------------------------");
+      ROS_INFO_STREAM("Item_Name: " << result.item_name);
+      ROS_INFO_STREAM("-----------------------------");
       pcl::PointCloud<PointType>::Ptr rotated_model(new pcl::PointCloud<PointType>());
       pcl::transformPointCloud(*model_list[result.item_id], *rotated_model, result.final_transformation);
       // Transform pick up point from model to scene
@@ -393,12 +393,12 @@ public:
       icp.setMaximumIterations (iterations);
       icp.setInputSource(rotated_model);
       icp.setInputTarget(scene);
-      pcl::PointCloud<pcl::PointXYZ> Final;
-      icp.align(Final);
+      pcl::PointCloud<pcl::PointXYZ> final;
+      icp.align(final);
       if (print_detailed_info){
     	duration = (std::clock() - t_start) / (double)CLOCKS_PER_SEC;
-    	std::cerr << "align time is " << duration << " seconds." << std::endl;
-        std::cerr << "has converged:" << icp.hasConverged() << " score: " <<icp.getFitnessScore() << std::endl;
+    	ROS_INFO_STREAM("align time is " << duration << " seconds.");
+        ROS_INFO_STREAM("has converged:" << icp.hasConverged() << " score: " <<icp.getFitnessScore());
       }
       Eigen::Matrix4f icp_transformation = icp.getFinalTransformation();
       pcl::transformPointCloud(*rotated_model, *rotated_model, icp_transformation);
@@ -441,7 +441,7 @@ public:
       pub_tf.publish(data_tf);
     }
     duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    std::cerr << "runtime is " << duration << " seconds." << std::endl;
+    ROS_INFO_STREAM("runtime is " << duration << " seconds.");
   }
 
 private:
