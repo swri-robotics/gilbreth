@@ -97,7 +97,7 @@ public:
       std::string model_path = model_map[i]["path"];
       if (pcl::io::loadPCDFile(package_path + model_path, *model_raw) < 0) 
       {
-        ROS_INFO("Error loading model cloud.");
+        ROS_ERROR("Error loading model cloud.");
         return;
       }
       model_raw_list.push_back(model_raw);
