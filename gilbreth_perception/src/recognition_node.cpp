@@ -24,6 +24,7 @@
 #include <pcl/point_types.h>
 #include <pcl/recognition/cg/hough_3d.h>
 #include <pcl/registration/ia_ransac.h>
+#include <pcl/registration/icp.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
@@ -53,6 +54,7 @@ public:
     print_detailed_info = false;
     key_point_sampling = 0.006;
     k_nearest_neighbors= 10;
+    iterations=10;
 
     pub_tf = nh.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
     loadParameter();
@@ -77,6 +79,7 @@ public:
     descr_dis_thrd = parameter_map["descr_dis_thrd"];
     key_point_sampling = parameter_map["key_point_sampling"];
     k_nearest_neighbors = parameter_map["k_nearest_neighbors"];
+    iterations=parameter_map["iteration"];
   }
 
   void loadModel() {
@@ -210,7 +213,7 @@ public:
 
   void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
 
-    std::clock_t start;
+    std::clock_t start, t_start;
     double duration;
     start = std::clock();
     pcl::PointCloud<PointType>::Ptr scene(new pcl::PointCloud<PointType>());
@@ -384,6 +387,22 @@ public:
       pick_point.z = pick_pose[result.item_id][2];
       pick_point_cloud->push_back(pick_point);
       pcl::transformPointCloud(*pick_point_cloud, *rotated_pick_point_cloud, result.final_transformation);
+      // Use ICP to fine align model to scene
+      t_start = std::clock();
+      pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+      icp.setMaximumIterations (iterations);
+      icp.setInputSource(rotated_model);
+      icp.setInputTarget(scene);
+      pcl::PointCloud<pcl::PointXYZ> Final;
+      icp.align(Final);
+      if (print_detailed_info){
+    	duration = (std::clock() - t_start) / (double)CLOCKS_PER_SEC;
+    	std::cerr << "align time is " << duration << " seconds." << std::endl;
+        std::cerr << "has converged:" << icp.hasConverged() << " score: " <<icp.getFitnessScore() << std::endl;
+      }
+      Eigen::Matrix4f icp_transformation = icp.getFinalTransformation();
+      pcl::transformPointCloud(*rotated_model, *rotated_model, icp_transformation);
+      pcl::transformPointCloud(*rotated_pick_point_cloud, *rotated_pick_point_cloud, icp_transformation);
       // Generate output message
       gilbreth_msgs::ObjectDetection data;
       gilbreth_msgs::ObjectDetection data_tf;
@@ -456,6 +475,7 @@ private:
   bool print_detailed_info;
   float key_point_sampling;
   int k_nearest_neighbors;
+  int iterations;
 };
 
 int main(int argc, char **argv) {

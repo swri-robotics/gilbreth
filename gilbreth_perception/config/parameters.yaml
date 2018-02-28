@@ -11,6 +11,8 @@ parameters:
   cg_size: 0.03
   cg_thresh: 8.0
   descr_dis_thrd: 0.1
+  #fine_align
+  iteration: 10
 switches:
   ICP: false # if false, use correspondence grouping algorithm
   print_detailed_info: false
