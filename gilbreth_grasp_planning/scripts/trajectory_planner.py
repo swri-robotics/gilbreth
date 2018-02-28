@@ -17,7 +17,6 @@ from std_msgs.msg import Duration
 
 # Global variables (don't do this at home)
 ARM_GROUP_NAME = 'robot_rail'
-#ROBOT_GROUP_NAME = 'robot_rail'
 MOVEIT_PLANNING_SERVICE = 'plan_kinematic_path'
 
 def waitForMoveGroup(wait_time = 10.0):
@@ -56,9 +55,6 @@ class TrajectoryPlanner():
                 if self.motion_planning():
                     self.compute_execution_dur()
                     rospy.loginfo("Run time is %f seconds",(time.time()-start_time))
-                    ## Publish robot trajectories messages 
-                    ##self.robot_trajectories_publisher.publish(self.trajectories_msgs)
-                    ##print "Publishing robot trajectories to /gilbreth/robot_trajectories"
                 else:
                     rospy.logerr("Failed to compute trajectories. Waiting for next objects")
             except rospy.ROSException as e:
@@ -85,7 +81,6 @@ class TrajectoryPlanner():
 
         ## Current ==> Pick Approach.
         print "======Start Motion Planning: Current ==> Pick Approach.========"
-        #self.group = moveit_commander.MoveGroupCommander('robot_rail')
         target = self.tool_poses.pick_approach.pose
         ## Set start and target pose
         self.group.set_start_state_to_current_state()
@@ -101,22 +96,12 @@ class TrajectoryPlanner():
 
         ## Pick Approach ==> Pick
         print "=====Start Motion Planning: Pick Approach ==> Pick.====="
-        #self.group = moveit_commander.MoveGroupCommander('robot')
         ## Get start and target pose
         start_state = RobotState()
         start_state.joint_state.name = self.trajectories_msgs.cur_to_approach.joint_trajectory.joint_names
         start_state.joint_state.position = self.trajectories_msgs.cur_to_approach.joint_trajectory.points[-1].positions
-
-        ## Set start and target pose
         self.group.set_start_state(start_state)
-
-        ## Use cartesian path planning for pick motion
-        #waypoints = []
-        #waypoints.append(copy.deepcopy(approach_target))
-        ## Get target pose
         target = self.tool_poses.pick_pose.pose
-        #waypoints.append(copy.deepcopy(pick_target))
-
         self.group.set_pose_target(target)
 
         traj = self.compute_trajectory()
@@ -129,14 +114,11 @@ class TrajectoryPlanner():
 
         ## Pick  ==> Pick retreat
         print "=====Start Motion Planning: Pick ==> Pick retreat.====="
-        #self.group = moveit_commander.MoveGroupCommander('robot')
         ## Get start and target pose
         start_state = RobotState()
         start_state.joint_state.name = self.trajectories_msgs.approach_to_pick.joint_trajectory.joint_names
         start_state.joint_state.position = self.trajectories_msgs.approach_to_pick.joint_trajectory.points[-1].positions
         target = self.tool_poses.pick_retreat.pose
-
-        ## Set start and target pose
         self.group.set_start_state(start_state)
         self.group.set_pose_target(target)
 
@@ -149,14 +131,11 @@ class TrajectoryPlanner():
         
         ## Pick retreat ==> Place
         print "=====Start Motion Planning: Retreat ==> Place.====="
-        #self.group = moveit_commander.MoveGroupCommander('robot_rail')
         ## Get start and target pose
         start_state = RobotState()
         start_state.joint_state.name = self.trajectories_msgs.pick_to_retreat.joint_trajectory.joint_names
         start_state.joint_state.position = self.trajectories_msgs.pick_to_retreat.joint_trajectory.points[-1].positions
         target = self.tool_poses.place_pose.pose
-
-        ## Set start and target pose
         self.group.set_start_state(start_state)
         self.group.set_pose_target(target)
 
@@ -191,7 +170,6 @@ class TrajectoryPlanner():
         ## Get deadline time for reaching picking pose
         self.trajectories_msgs.pick_deadline = copy.deepcopy(self.tool_poses.pick_pose.header.stamp)
 
-
         ## Publish robot trajectories messages 
         self.robot_trajectories_publisher.publish(self.trajectories_msgs)
         print "Publishing robot trajectories to /gilbreth/robot_trajectories"
@@ -207,7 +185,6 @@ if __name__=='__main__':
           rospy.logerr("Timed out waiting for move group node, exiting ...")
           sys.exit(-1)
     
-        ## a TargetToolPoses subscriber
         traj_planner = TrajectoryPlanner()
         rate = rospy.Rate(10)
         rospy.spin()
