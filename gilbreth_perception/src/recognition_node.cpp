@@ -24,6 +24,7 @@
 #include <pcl/point_types.h>
 #include <pcl/recognition/cg/hough_3d.h>
 #include <pcl/registration/ia_ransac.h>
+#include <pcl/registration/icp.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/segmentation/extract_clusters.h>
@@ -53,6 +54,7 @@ public:
     print_detailed_info = false;
     key_point_sampling = 0.006;
     k_nearest_neighbors= 10;
+    iterations=10;
 
     pub_tf = nh.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
     loadParameter();
@@ -77,6 +79,7 @@ public:
     descr_dis_thrd = parameter_map["descr_dis_thrd"];
     key_point_sampling = parameter_map["key_point_sampling"];
     k_nearest_neighbors = parameter_map["k_nearest_neighbors"];
+    iterations=parameter_map["iteration"];
   }
 
   void loadModel() {
@@ -210,7 +213,7 @@ public:
 
   void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
 
-    std::clock_t start;
+    std::clock_t start, t_start;
     double duration;
     start = std::clock();
     pcl::PointCloud<PointType>::Ptr scene(new pcl::PointCloud<PointType>());
@@ -234,7 +237,7 @@ public:
 
     // Recognition
     if (icp) {
-      std::cerr << "Using ICP" << std::endl;
+      ROS_INFO_STREAM("Using ICP");
       pcl::FPFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> fpfh_est;
       fpfh_est.setSearchMethod(tree);
       fpfh_est.setRadiusSearch(descr_rad);
@@ -267,7 +270,7 @@ public:
         results_temp[j].fitness_score = (float)sac_ia_.getFitnessScore(max_correspondence_distance);
         results_temp[j].final_transformation = sac_ia_.getFinalTransformation();
         if (print_detailed_info) {
-          std::cerr << "model " << j << " FitnessScore " << results_temp[j].fitness_score << std::endl;
+          ROS_INFO_STREAM("model " << j << " FitnessScore " << results_temp[j].fitness_score);
         }
         if (results_temp[j].fitness_score < best_score) {
           min_index = j;
@@ -278,7 +281,7 @@ public:
     }
 
     else {
-      std::cerr << "Using Correspondence Grouping" << std::endl;
+      ROS_INFO_STREAM("Using Correspondence Grouping");
       // Extract Scene Keypoint
       pcl::UniformSampling<PointType> uniform_sampling;
       pcl::PointCloud<PointType>::Ptr scene_keypoints(new pcl::PointCloud<PointType>());
@@ -328,8 +331,8 @@ public:
           }
         }
         if (print_detailed_info) {
-          std::cerr << "Model " << j << " "
-                    << "Correspondence ORG number: " << model_scene_corrs->size() << std::endl;
+          ROS_INFO_STREAM("Model " << j << " "
+                    << "Correspondence ORG number: " << model_scene_corrs->size());
         }
         // clustering
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
@@ -353,26 +356,26 @@ public:
             result.final_transformation = rototranslations[0];
           }
           if (print_detailed_info) {
-            std::cerr << "Model " << j << " "<< "Correspondence number: " << clustered_corrs[0].size() << std::endl;
+            ROS_INFO_STREAM("Model " << j << " "<< "Correspondence number: " << clustered_corrs[0].size());
           }
         }
         else {
           if (print_detailed_info) {
-            std::cerr << "Model " << j << " "<< "Correspondence number: 0" << std::endl;
+            ROS_INFO_STREAM("Model " << j << " "<< "Correspondence number: 0");
           }
         }
       }
     }
 
     if (min_index == -1) {
-      std::cerr << "--------------------------------------------------------------" << std::endl;
-      std::cerr << "No model matching" << std::endl;
-      std::cerr << "--------------------------------------------------------------" << std::endl;
+      ROS_INFO_STREAM("-----------------------------");
+      ROS_INFO_STREAM("No model matching");
+      ROS_INFO_STREAM("-----------------------------");
     }
     else {
-      std::cerr << "--------------------------------------------------------------" << std::endl;
-      std::cerr << "Item_Name: " << result.item_name << std::endl;
-      std::cerr << "--------------------------------------------------------------" << std::endl;
+      ROS_INFO_STREAM("-----------------------------");
+      ROS_INFO_STREAM("Item_Name: " << result.item_name);
+      ROS_INFO_STREAM("-----------------------------");
       pcl::PointCloud<PointType>::Ptr rotated_model(new pcl::PointCloud<PointType>());
       pcl::transformPointCloud(*model_list[result.item_id], *rotated_model, result.final_transformation);
       // Transform pick up point from model to scene
@@ -384,6 +387,22 @@ public:
       pick_point.z = pick_pose[result.item_id][2];
       pick_point_cloud->push_back(pick_point);
       pcl::transformPointCloud(*pick_point_cloud, *rotated_pick_point_cloud, result.final_transformation);
+      // Use ICP to fine align model to scene
+      t_start = std::clock();
+      pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+      icp.setMaximumIterations (iterations);
+      icp.setInputSource(rotated_model);
+      icp.setInputTarget(scene);
+      pcl::PointCloud<pcl::PointXYZ> final;
+      icp.align(final);
+      if (print_detailed_info){
+    	duration = (std::clock() - t_start) / (double)CLOCKS_PER_SEC;
+    	ROS_INFO_STREAM("align time is " << duration << " seconds.");
+        ROS_INFO_STREAM("has converged:" << icp.hasConverged() << " score: " <<icp.getFitnessScore());
+      }
+      Eigen::Matrix4f icp_transformation = icp.getFinalTransformation();
+      pcl::transformPointCloud(*rotated_model, *rotated_model, icp_transformation);
+      pcl::transformPointCloud(*rotated_pick_point_cloud, *rotated_pick_point_cloud, icp_transformation);
       // Generate output message
       gilbreth_msgs::ObjectDetection data;
       gilbreth_msgs::ObjectDetection data_tf;
@@ -422,7 +441,7 @@ public:
       pub_tf.publish(data_tf);
     }
     duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    std::cerr << "runtime is " << duration << " seconds." << std::endl;
+    ROS_INFO_STREAM("runtime is " << duration << " seconds.");
   }
 
 private:
@@ -456,6 +475,7 @@ private:
   bool print_detailed_info;
   float key_point_sampling;
   int k_nearest_neighbors;
+  int iterations;
 };
 
 int main(int argc, char **argv) {
