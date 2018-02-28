@@ -160,7 +160,7 @@ namespace gazebo
     private: math::Angle limit;
 
     /// \brief Maximum linear velocity of the belt.
-    private: const double kMaxBeltLinVel = 0.2;
+    private: double kMaxBeltLinVel = 0.4;
 
     /// \brief Gazebo node for communication.
     protected: transport::NodePtr gzNode;

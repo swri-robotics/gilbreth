@@ -123,6 +123,9 @@ namespace gazebo
     /// \brief True if the gripper has an object.
     public: bool attached = false;
 
+    /// \brief The name of the attached link
+    public: std::string attached_link_name = "";
+
     /// \brief Rate at which to update the gripper.
     public: common::Time updateRate;
 
@@ -304,6 +307,10 @@ void VacuumGripperPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
     }
 
   }
+  else
+  {
+    gzdbg<<"Drop region for gripper not specified, disabling drop regions"<<std::endl;
+  }
 
   // Find out the collision elements of the suction cup
   for (auto j = 0u; j < this->dataPtr->suctionCupLink->GetChildCount(); ++j)
@@ -393,9 +400,13 @@ void VacuumGripperPlugin::OnUpdate()
     this->dataPtr->disableRequested = false;
   }
 
-  if (common::Time::GetWallTime() -
-      this->dataPtr->prevUpdateTime < this->dataPtr->updateRate ||
-      !this->dataPtr->enabled)
+  if(!this->dataPtr->enabled)
+  {
+    return;
+  }
+
+  if(common::Time::GetWallTime() -
+      this->dataPtr->prevUpdateTime < this->dataPtr->updateRate )
   {
     return;
   }
@@ -464,6 +475,7 @@ bool VacuumGripperPlugin::GetContactNormal()
 {
   physics::CollisionPtr collisionPtr;
   ignition::math::Vector3d contactNormal;
+  this->dataPtr->modelCollision.reset();
 
   // Get the pointer to the collision that's not the gripper's.
   // This function is only called from the OnUpdate function so
@@ -495,11 +507,13 @@ bool VacuumGripperPlugin::GetContactNormal()
       return true;
     }
   }
-
+/*
+ * TODO: Delete, its unclear why this check even happens when no attempt to assign a value to it
+ * is made
   if (!collisionPtr)
   {
     gzdbg << "Somehow the gripper was in collision with itself.\n";
-  }
+  }*/
 
   return false;
 }
@@ -511,11 +525,21 @@ void VacuumGripperPlugin::HandleAttach()
   {
     return;
   }
-  this->dataPtr->attached = true;
+
+  if(!this->dataPtr->modelCollision)
+  {
+    return;
+  }
+
+
 
   this->dataPtr->fixedJoint->Load(this->dataPtr->suctionCupLink,
       this->dataPtr->modelCollision->GetLink(), math::Pose());
   this->dataPtr->fixedJoint->Init();
+
+  this->dataPtr->attached_link_name = this->dataPtr->modelCollision->GetName();
+  this->dataPtr->attached = true;
+  gzdbg<<"Gripper attached object "<< this->dataPtr->attached_link_name <<std::endl;
 
   auto modelPtr = this->dataPtr->modelCollision->GetLink()->GetModel();
   auto name = modelPtr->GetName();
@@ -549,8 +573,18 @@ void VacuumGripperPlugin::HandleAttach()
 void VacuumGripperPlugin::HandleDetach()
 {
   gzdbg << "Detaching part from gripper." << std::endl;
-  this->dataPtr->attached = false;
-  this->dataPtr->fixedJoint->Detach();
+  if(dataPtr->attached)
+  {
+
+    if(this->dataPtr->world->GetEntity(this->dataPtr->attached_link_name))
+    {
+      this->dataPtr->fixedJoint->Detach();
+    }
+
+    this->dataPtr->attached_link_name = "";
+    this->dataPtr->modelCollision.reset();
+    this->dataPtr->attached = false;
+  }
 }
 
 /////////////////////////////////////////////////
@@ -586,14 +620,16 @@ bool VacuumGripperPlugin::CheckModelContact()
       gripperLinkPose.Rot().RotateVector(ignition::math::Vector3d(0, -1, 0));
     double alignment = gripperLinkNormal.Dot(this->dataPtr->modelContactNormal);
 
-    gzdbg << "Model contact normal: " << this->dataPtr->modelContactNormal.X() << " "
-          << this->dataPtr->modelContactNormal.X() << " "
-          << this->dataPtr->modelContactNormal.Z() << std::endl;
-
-    gzdbg << "Dot Product: " << alignment << std::endl;
 
     // Alignment of > 0.95 represents alignment angle of < acos(0.95) = ~18 degrees
-    if (alignment > 0.95) {
+    if (alignment > 0.95)
+    {
+      gzdbg << "Model contact normal: " << this->dataPtr->modelContactNormal.X() << " "
+            << this->dataPtr->modelContactNormal.X() << " "
+            << this->dataPtr->modelContactNormal.Z() << std::endl;
+
+      gzdbg << "Dot Product: " << alignment << std::endl;
+      gzdbg<<"Model is aligned with gripper"<<std::endl;
       modelInContact = true;
     }
   }
