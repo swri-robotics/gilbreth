@@ -80,7 +80,7 @@ class TrajectoryPlanner():
         self.trajectories_msgs = RobotTrajectories()
 
         ## Current ==> Pick Approach.
-        print "======Start Motion Planning: Current ==> Pick Approach.========"
+        rospy.loginfo("======Start Motion Planning: Current ==> Pick Approach.========")
         target = self.tool_poses.pick_approach.pose
         ## Set start and target pose
         self.group.set_start_state_to_current_state()
@@ -95,7 +95,7 @@ class TrajectoryPlanner():
             return False
 
         ## Pick Approach ==> Pick
-        print "=====Start Motion Planning: Pick Approach ==> Pick.====="
+        rospy.loginfo("=====Start Motion Planning: Pick Approach ==> Pick.=====")
         ## Get start and target pose
         start_state = RobotState()
         start_state.joint_state.name = self.trajectories_msgs.cur_to_approach.joint_trajectory.joint_names
@@ -113,7 +113,7 @@ class TrajectoryPlanner():
         
 
         ## Pick  ==> Pick retreat
-        print "=====Start Motion Planning: Pick ==> Pick retreat.====="
+        rospy.loginfo("=====Start Motion Planning: Pick ==> Pick retreat.=====")
         ## Get start and target pose
         start_state = RobotState()
         start_state.joint_state.name = self.trajectories_msgs.approach_to_pick.joint_trajectory.joint_names
@@ -130,7 +130,7 @@ class TrajectoryPlanner():
             return False
         
         ## Pick retreat ==> Place
-        print "=====Start Motion Planning: Retreat ==> Place.====="
+        rospy.loginfo("=====Start Motion Planning: Retreat ==> Place.=====")
         ## Get start and target pose
         start_state = RobotState()
         start_state.joint_state.name = self.trajectories_msgs.pick_to_retreat.joint_trajectory.joint_names
@@ -147,7 +147,7 @@ class TrajectoryPlanner():
             return False
 
         self.trajectories_msgs.header.stamp = rospy.get_rostime()
-        print "************Successfully plannign all trajectories***********"
+        rospy.loginfo("************Successfully plannign all trajectories***********")
         return True
 
     def compute_execution_dur(self):
@@ -172,7 +172,7 @@ class TrajectoryPlanner():
 
         ## Publish robot trajectories messages 
         self.robot_trajectories_publisher.publish(self.trajectories_msgs)
-        print "Publishing robot trajectories to /gilbreth/robot_trajectories"
+        rospy.loginfo("Publishing robot trajectories to /gilbreth/robot_trajectories")
 if __name__=='__main__':
     try:
         moveit_commander.roscpp_initialize(sys.argv)
