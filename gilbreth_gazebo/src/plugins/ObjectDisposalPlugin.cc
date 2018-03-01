@@ -21,13 +21,13 @@
 #include <boost/format.hpp>
 #include "gilbreth_gazebo/plugins/ObjectDisposalPlugin.hh"
 #include <eigen_conversions/eigen_msg.h>
+#include <gazebo_msgs/ModelStates.h>
 
-static const double WAIT_SERVICE_PERIOD = 5.0f;
 static const double ROS_QUEUE_TIMEOUT = 0.1;
-static const std::string DELETE_MODEL_SERVICE = "gazebo/delete_model";
-static const std::string SET_MODEL_STATE_SERVICE = "/gazebo/set_model_state";
+static const std::string DISPOSED_MODELS_TOPIC = "gazebo/disposed_models";
 static const std::string DEFAULT_WORLD_FRAME_ID = "world";
-static const Eigen::Vector3d DISPOSE_LOCATION = Eigen::Vector3d(0,0,-10); // meters
+static const Eigen::Vector3d DISPOSAL_NOMINAL_LOCATION = Eigen::Vector3d(0,0,-10); // meters
+static const double DISPOSAL_Y_INCREMENT = 1.25f;
 
 using namespace gazebo;
 GZ_REGISTER_MODEL_PLUGIN(ObjectDisposalPlugin)
@@ -74,10 +74,7 @@ void ObjectDisposalPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 
   // setting up ROS connections
   nh_.reset(new ros::NodeHandle());
-  delete_model_client_ = nh_->serviceClient<gazebo_msgs::DeleteModel>(DELETE_MODEL_SERVICE);
-  set_state_client_ = nh_->serviceClient<gazebo_msgs::SetModelState>(SET_MODEL_STATE_SERVICE);
-  GZ_ASSERT(delete_model_client_.waitForExistence(ros::Duration(WAIT_SERVICE_PERIOD)),
-            boost::str(boost::format("The service '%1%' was not found") % DELETE_MODEL_SERVICE).c_str());
+  disposed_models_pub_ = nh_->advertise<gazebo_msgs::ModelStates>(DISPOSED_MODELS_TOPIC,1);
 
   // setting up info
   world_frame_id_ = DEFAULT_WORLD_FRAME_ID;
@@ -86,9 +83,6 @@ void ObjectDisposalPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   // ROS Thread setup
   ros_queue_thread_ = std::thread(std::bind(&ObjectDisposalPlugin::processROSQueue,this));
 
-  gzmsg << boost::str(boost::format("Connected to service '%1%'") % DELETE_MODEL_SERVICE)<< std::endl;
-
-
 }
 
 void ObjectDisposalPlugin::processROSQueue()
@@ -96,42 +90,37 @@ void ObjectDisposalPlugin::processROSQueue()
   ros::Duration loop_pause(ROS_QUEUE_TIMEOUT);
   while(nh_->ok())
   {
-    deleteQueuedObjects();
+    publishDeactivatedObjects();
     loop_pause.sleep();
   }
 }
 
-void ObjectDisposalPlugin::deleteQueuedObjects()
+void ObjectDisposalPlugin::publishDeactivatedObjects()
 {
   gazebo_msgs::DeleteModel delete_model_srv;
   gazebo_msgs::SetModelState set_state_srv;
-  while(!delete_model_queue_.empty())
+
+  gazebo_msgs::ModelStates models_msg;
+  while(!disposed_models_queue_.empty())
   {
-    std::string model_name = delete_model_queue_.front();
+    std::string model_name = disposed_models_queue_.front();
+    geometry_msgs::Pose pose;
+    geometry_msgs::Twist twist;
 
-    // moving model out of the way
-    gazebo_msgs::SetModelStateRequest& set_st_req = set_state_srv.request;
-    set_st_req.model_state.model_name = model_name;
-    Eigen::Affine3d pose = Eigen::Affine3d::Identity() * Eigen::Translation3d(DISPOSE_LOCATION);
-    tf::poseEigenToMsg(pose,set_st_req.model_state.pose);
-    set_st_req.model_state.reference_frame = world_frame_id_;
+    tf::poseEigenToMsg(Eigen::Affine3d::Identity(),pose);
+    tf::vectorEigenToMsg(Eigen::Vector3d::Zero(),twist.linear);
+    tf::vectorEigenToMsg(Eigen::Vector3d::Zero(),twist.angular);
 
-    if(!set_state_client_.call(set_state_srv))
-    {
-      gzwarn<<boost::str(boost::format("Failed to move model '%1%' to discard location")% model_name)<<std::endl;
-    }
+    models_msg.name.push_back(model_name);
+    models_msg.pose.push_back(pose);
+    models_msg.twist.push_back(twist);
 
-    delete_model_srv.request.model_name = model_name;
-    if(delete_model_client_.call(delete_model_srv) && delete_model_srv.response.success)
-    {
-      gzdbg <<"Model '"<< delete_model_srv.request.model_name <<"' deleted"<<std::endl;
-    }
-    else
-    {
-      gzerr <<"Model deletion failed for '"<< delete_model_srv.request.model_name <<"'" <<std::endl;
-    }
+    disposed_models_queue_.pop();
+  }
 
-    delete_model_queue_.pop();
+  if(!models_msg.name.empty())
+  {
+    disposed_models_pub_.publish(models_msg);
   }
 }
 
@@ -182,11 +171,22 @@ void ObjectDisposalPlugin::ActOnContactingModels()
       }
       if (removeModel)
       {
-        // Queuing object for deletion
-        if(!delete_model_queue_.hasEntry(model->GetName() ))
+        // teleporting model away (deleting them causes race conditions)
+        math::Pose modelDisposalPose = model->GetWorldPose();
+        auto dl = DISPOSAL_NOMINAL_LOCATION;
+        modelDisposalPose.pos = this->disposalPose.pos + math::Vector3(
+            dl.x(),
+            dl.y() + DISPOSAL_Y_INCREMENT * (disposed_models_queue_.size() + 1),
+            dl.z());
+
+        gzdbg << "[" << this->model->GetName() << "] Teleporting model: " << model->GetName() << "\n";
+        model->SetAutoDisable(true);
+        model->SetWorldPose(modelDisposalPose);
+
+        // Adding object to queue
+        if(!disposed_models_queue_.hasEntry(model->GetName() ))
         {
-          gzdbg<<boost::str(boost::format("Adding %1% to deletion queue") %model->GetName() )<<std::endl;
-          delete_model_queue_.push(model->GetName());
+          disposed_models_queue_.push(model->GetName());
         }
 
       }

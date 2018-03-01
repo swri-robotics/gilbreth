@@ -80,6 +80,12 @@ public:
     return ref != queue_.end();
   }
 
+  std::size_t size()
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return queue_.size();
+  }
+
 private:
 
   std::list<T> queue_;
@@ -116,7 +122,7 @@ namespace gazebo
     /**
      * @brief Calls the service to delete models
      */
-    void deleteQueuedObjects();
+    void publishDeactivatedObjects();
 
     /// \brief If true, only delete models if their CoG is within the bounding box of the link
     protected: bool centerOfGravityCheck;
@@ -129,9 +135,8 @@ namespace gazebo
     std::shared_ptr<ros::NodeHandle> nh_;
     ros::CallbackQueue ros_queue_;
     std::thread ros_queue_thread_;
-    ros::ServiceClient delete_model_client_;
-    ros::ServiceClient set_state_client_;
-    ConcurrentQueue<std::string> delete_model_queue_;
+    ros::Publisher disposed_models_pub_;
+    ConcurrentQueue<std::string> disposed_models_queue_;
     std::string world_frame_id_;
 
   };
