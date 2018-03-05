@@ -113,6 +113,9 @@ class RobotExecution:
         
         rospy.loginfo("Moving to position: %s"%(str(p) ))
         
+        if rospy.is_shutdown():
+          return True
+        
         if not self.moveRobot():
           return False
              

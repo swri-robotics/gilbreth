@@ -86,6 +86,7 @@
       <population_rate_modifier_topic>/gilbreth/population/rate_modifier</population_rate_modifier_topic>
       <link>conveyor_belt::conveyor_belt_moving::belt</link>
       <power>0</power>
+      <max_linear_velocity>1.0</max_linear_velocity>
     </plugin>
 
   </model>

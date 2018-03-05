@@ -43,6 +43,10 @@ void ConveyorBeltPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   if (_sdf->HasElement("power"))
     this->beltPower = _sdf->Get<double>("power");
 
+
+  if (_sdf->HasElement("max_linear_velocity"))
+    this->maxBeltLinVel = _sdf->Get<double>("max_linear_velocity");
+
   this->SetPower(this->beltPower);
   gzdbg << "Using belt power of: " << this->beltPower << " %\n";
 
@@ -143,6 +147,6 @@ void ConveyorBeltPlugin::SetPower(const double _power)
   this->populationRateModifierPub->Publish(msg);
 
   // Convert the power (percentage) to a velocity.
-  this->beltVelocity = this->kMaxBeltLinVel * this->beltPower / 100.0;
+  this->beltVelocity = this->maxBeltLinVel * this->beltPower / 100.0;
   gzdbg << "Received power of: " << _power << ", setting velocity to: " << this->beltVelocity << std::endl;
 }
