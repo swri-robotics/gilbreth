@@ -8,6 +8,7 @@
   <arg name="rviz" default = "false"/>
   <arg name="headless" default="false"/>
   <arg name="debug" default="false"/>
+  <arg name="physics" default="ode"/>
   <arg name="extra_gazebo_args" default="--verbose"/>
 
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
@@ -19,6 +20,7 @@
     <arg name="use_sim_time" value="$(arg use_sim_time)"/>
     <arg name="headless" value="$(arg headless)"/>
     <arg name="extra_gazebo_args" value="$(arg extra_gazebo_args)"/>
+    <arg name="physics" default="$(arg physics)"/>
   </include>
 
   <!-- Load the URDF into the ROS Parameter Server -->
