@@ -8,6 +8,8 @@
   <arg name="rviz" default = "false"/>
   <arg name="headless" default="false"/>
   <arg name="debug" default="false"/>
+  <arg name="physics" default="ode"/>
+  
   <arg name="extra_gazebo_args" default="--verbose"/>
 
   <!-- gazebo and moveit -->
@@ -18,6 +20,7 @@
     <arg name="use_sim_time" value="$(arg use_sim_time)"/>
     <arg name="headless" value="$(arg headless)"/>
     <arg name="extra_gazebo_args" value="$(arg extra_gazebo_args)"/>
+    <arg name="physics" default="$(arg physics)"/>
     <arg name="rviz" default = "$(arg rviz)"/>
   </include>
 

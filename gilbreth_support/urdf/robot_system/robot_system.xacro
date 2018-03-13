@@ -9,7 +9,7 @@
   <xacro:linear_actuator_urdf prefix="${linear_actuator_prefix}"/>
 
   <xacro:include filename="$(find gilbreth_support)/urdf/linear_actuator/linear_actuator.gazebo.xacro"/>
-  <xacro:linear_actuator_gazebo prefix="${linear_actuator_prefix}" joint_interface="PositionJointInterface"/>
+  <xacro:linear_actuator_gazebo prefix="${linear_actuator_prefix}" joint_interface="hardware_interface/PositionJointInterface"/>
 
   <!-- Robot -->
   <xacro:include filename="$(find ur_description)/urdf/ur10.urdf.xacro"/>
