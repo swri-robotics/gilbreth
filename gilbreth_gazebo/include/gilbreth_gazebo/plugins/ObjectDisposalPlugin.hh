@@ -25,8 +25,72 @@
 #include <gazebo/math/Pose.hh>
 #include <gazebo/sensors/sensors.hh>
 #include <gazebo/util/system.hh>
+#include <ros/node_handle.h>
+#include <ros/service_client.h>
+#include <ros/callback_queue.h>
+#include <gazebo_msgs/DeleteModel.h>
+#include <gazebo_msgs/SetModelState.h>
+#include <thread>
+#include <queue>
 
 #include "SideContactPlugin.hh"
+
+template <typename T>
+class ConcurrentQueue
+{
+public:
+  ConcurrentQueue()
+  {
+
+  }
+
+  ~ConcurrentQueue()
+  {
+
+  }
+
+  void pop()
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    queue_.pop_front();
+  }
+
+  T front()
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return queue_.front();
+  }
+
+  bool empty()
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return queue_.empty();
+  }
+
+  void push(const T& e)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    queue_.push_back(e);
+  }
+
+  bool hasEntry(const T& e)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto ref = std::find(queue_.begin(),queue_.end(),e);
+    return ref != queue_.end();
+  }
+
+  std::size_t size()
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    return queue_.size();
+  }
+
+private:
+
+  std::list<T> queue_;
+  std::mutex mutex_;
+};
 
 namespace gazebo
 {
@@ -50,11 +114,31 @@ namespace gazebo
     /// \brief Act on models that are ontop of the sensor's link
     protected: void ActOnContactingModels();
 
+    /**
+     * @brief Callback that processes ROS related events
+     */
+    protected: void processROSQueue();
+
+    /**
+     * @brief Calls the service to delete models
+     */
+    void publishDeactivatedObjects();
+
     /// \brief If true, only delete models if their CoG is within the bounding box of the link
     protected: bool centerOfGravityCheck;
 
     /// \brief Pose where the object will be teleported.
-    protected: math::Pose disposalPose;
+    protected: math::Pose disposalPose; // TODO: Remove this seemingly unused member.
+
+    protected:
+    // ROS Connection
+    std::shared_ptr<ros::NodeHandle> nh_;
+    ros::CallbackQueue ros_queue_;
+    std::thread ros_queue_thread_;
+    ros::Publisher disposed_models_pub_;
+    ConcurrentQueue<std::string> disposed_models_queue_;
+    std::string world_frame_id_;
+
   };
 }
 #endif

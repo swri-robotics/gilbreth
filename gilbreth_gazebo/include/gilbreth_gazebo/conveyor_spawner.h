@@ -6,6 +6,7 @@
 #include <std_srvs/Empty.h>
 #include <urdf/model.h>
 #include <XmlRpcValue.h>
+#include <gazebo_msgs/ModelStates.h>
 
 namespace gilbreth
 {
@@ -27,6 +28,7 @@ struct SpawnParameters
   std::string reference_frame;
   double spawn_period;
   int randomization_seed;
+  int max_objects = 40;                   /** @brief maximum number of objects to spawn, objects will then be recycled */
   std::vector<ObjectParameters> objects;
 };
 
@@ -62,17 +64,25 @@ private:
             std_srvs::EmptyResponse& res);
 
 
-  void spawnObject(const ros::TimerEvent& e);
+  void spawnObjectTimerCb(const ros::TimerEvent& e);
+  void spawnObject();
+  void recirculateObject();
+
+  void disposedObjectsCallback(const gazebo_msgs::ModelStatesConstPtr& msg);
 
 
   int object_counter_ = 0;
   ros::NodeHandle nh_;
   ros::Publisher pub_;
+  ros::Subscriber disposed_objs_subs_;
   ros::ServiceClient spawn_client_;
+  ros::ServiceClient set_state_client_;
   ros::ServiceServer start_server_;
   ros::ServiceServer stop_server_;
   ros::Timer timer_;
   SpawnParameters params_;
+  std::vector<std::string> inactive_objects_ids_;
+  std::map<std::string,std::string> spawned_objects_map_; /** @brief mapping between object names and models used <obj_id, obj_name>*/
 
 };
 

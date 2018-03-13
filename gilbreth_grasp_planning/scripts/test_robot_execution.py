@@ -23,6 +23,7 @@ GRIPPER_SERIVE_TOPIC='gilbreth/gripper/control'
 ARM_GROUP_NAME = 'robot_rail'
 MOVEIT_PLANNING_SERVICE = 'plan_kinematic_path'
 HOME_JOINT_POSE = 'robot_rail_home'
+NUM_GOAL_POSES = 1
 JOINT_RAND_FACTOR = [0.5] + [0.4]*6
 
 def waitForMoveGroup(wait_time = 10.0):
@@ -78,15 +79,15 @@ class RobotExecution:
       if robot_traj:
           
           robot_traj = curateTrajectory(robot_traj)
-          rospy.loginfo("Motion Plan Success: Current Pose ==> Waiting Pose.")
+          rospy.loginfo("Motion Planing Succeeded")
           if self.moveit_commander.execute(robot_traj):
             rospy.loginfo("Moved Robot to Target Pose")
             
           else:
-            rospy.logerr("Joint trajectory execution failed")
+            rospy.logerr("Trajectory execution failed")
             return False
       else:
-          rospy.logerr("Motion Plan Failed time: Current Pose ==> Waiting Pose.")
+          rospy.logerr("Motion Planning Failed.")
           return False
        
       return True
@@ -106,15 +107,16 @@ class RobotExecution:
       #return True  
       
       # Moving to each pose
-      joint_poses = createPoses(seed_joint_pose ,8)
-      for i, p in enumerate(joint_poses):
-        self.moveit_commander.set_start_state_to_current_state()
-        self.moveit_commander.set_joint_value_target(p)
-        
-        rospy.loginfo("Moving to position: %s"%(str(p) ))
-        
-        if not self.moveRobot():
-          return False
+      while not rospy.is_shutdown():
+          joint_poses = createPoses(seed_joint_pose ,NUM_GOAL_POSES)
+          for i, p in enumerate(joint_poses):
+            self.moveit_commander.set_start_state_to_current_state()
+            self.moveit_commander.set_joint_value_target(p)
+            
+            rospy.loginfo("Moving to position: %s"%(str(p) ))
+            
+            if not self.moveRobot():
+              return False
              
 
 def main(args):

@@ -73,6 +73,15 @@ void ConveyorBeltPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
     return;
   }
 
+  if(_sdf->HasElement("max_belt_linear_vel"))
+  {
+    this->kMaxBeltLinVel = _sdf->Get<double>("max_belt_linear_vel");
+  }
+  else
+  {
+    gzdbg<<"Using default linear speed "<<this->kMaxBeltLinVel<<std::endl;
+  }
+
   // Set the point where the link will be moved to its starting pose.
   this->limit = this->joint->GetUpperLimit(0) - 0.6;
 

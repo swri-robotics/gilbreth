@@ -18,8 +18,16 @@
 #include <limits>
 #include <string>
 #include <gazebo/transport/Node.hh>
-
+#include <boost/format.hpp>
 #include "gilbreth_gazebo/plugins/ObjectDisposalPlugin.hh"
+#include <eigen_conversions/eigen_msg.h>
+#include <gazebo_msgs/ModelStates.h>
+
+static const double ROS_QUEUE_TIMEOUT = 0.1;
+static const std::string DISPOSED_MODELS_TOPIC = "gazebo/disposed_models";
+static const std::string DEFAULT_WORLD_FRAME_ID = "world";
+static const Eigen::Vector3d DISPOSAL_NOMINAL_LOCATION = Eigen::Vector3d(0,0,-10); // meters
+static const double DISPOSAL_Y_INCREMENT = 1.25f;
 
 using namespace gazebo;
 GZ_REGISTER_MODEL_PLUGIN(ObjectDisposalPlugin)
@@ -60,6 +68,60 @@ void ObjectDisposalPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   }
 
   this->disposalPose = _sdf->Get<math::Pose>("disposal_pose");
+
+  // connecting to ROS
+  GZ_ASSERT(ros::isInitialized(),"ROS is not initialized, can't subscribe to delete model server");
+
+  // setting up ROS connections
+  nh_.reset(new ros::NodeHandle());
+  disposed_models_pub_ = nh_->advertise<gazebo_msgs::ModelStates>(DISPOSED_MODELS_TOPIC,1);
+
+  // setting up info
+  world_frame_id_ = DEFAULT_WORLD_FRAME_ID;
+  gzmsg << boost::str(boost::format("World Frame ID '%1%'") % world_frame_id_)<< std::endl;
+
+  // ROS Thread setup
+  ros_queue_thread_ = std::thread(std::bind(&ObjectDisposalPlugin::processROSQueue,this));
+
+}
+
+void ObjectDisposalPlugin::processROSQueue()
+{
+  ros::Duration loop_pause(ROS_QUEUE_TIMEOUT);
+  while(nh_->ok())
+  {
+    publishDeactivatedObjects();
+    loop_pause.sleep();
+  }
+}
+
+void ObjectDisposalPlugin::publishDeactivatedObjects()
+{
+  gazebo_msgs::DeleteModel delete_model_srv;
+  gazebo_msgs::SetModelState set_state_srv;
+
+  gazebo_msgs::ModelStates models_msg;
+  while(!disposed_models_queue_.empty())
+  {
+    std::string model_name = disposed_models_queue_.front();
+    geometry_msgs::Pose pose;
+    geometry_msgs::Twist twist;
+
+    tf::poseEigenToMsg(Eigen::Affine3d::Identity(),pose);
+    tf::vectorEigenToMsg(Eigen::Vector3d::Zero(),twist.linear);
+    tf::vectorEigenToMsg(Eigen::Vector3d::Zero(),twist.angular);
+
+    models_msg.name.push_back(model_name);
+    models_msg.pose.push_back(pose);
+    models_msg.twist.push_back(twist);
+
+    disposed_models_queue_.pop();
+  }
+
+  if(!models_msg.name.empty())
+  {
+    disposed_models_pub_.publish(models_msg);
+  }
 }
 
 /////////////////////////////////////////////////
@@ -86,6 +148,7 @@ void ObjectDisposalPlugin::ActOnContactingModels()
   linkBoxMax.z = std::numeric_limits<double>::max();
   auto disposalBox = math::Box(linkBoxMin, linkBoxMax);
 
+
   for (auto model : this->contactingModels) {
     if (model) {
       bool removeModel = true;
@@ -108,9 +171,24 @@ void ObjectDisposalPlugin::ActOnContactingModels()
       }
       if (removeModel)
       {
-        gzdbg << "[" << this->model->GetName() << "] Removing model: " << model->GetName() << "\n";
-//        model->SetWorldPose(this->disposalPose);
-        world->RemoveModel(model->GetName());
+        // teleporting model away (deleting them causes race conditions)
+        math::Pose modelDisposalPose = model->GetWorldPose();
+        auto dl = DISPOSAL_NOMINAL_LOCATION;
+        modelDisposalPose.pos = this->disposalPose.pos + math::Vector3(
+            dl.x(),
+            dl.y() + DISPOSAL_Y_INCREMENT * (disposed_models_queue_.size() + 1),
+            dl.z());
+
+        gzdbg << "[" << this->model->GetName() << "] Teleporting model: " << model->GetName() << "\n";
+        model->SetAutoDisable(true);
+        model->SetWorldPose(modelDisposalPose);
+
+        // Adding object to queue
+        if(!disposed_models_queue_.hasEntry(model->GetName() ))
+        {
+          disposed_models_queue_.push(model->GetName());
+        }
+
       }
     }
   }
