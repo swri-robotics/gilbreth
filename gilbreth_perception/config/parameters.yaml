@@ -1,17 +1,18 @@
 recognition:
   # Model Preprocessing
-  descr_rad: 0.06
+  descr_rad_cg: 0.1
+  descr_rad_icp: 0.0
   k_nearest_neighbors: 10
-  down_sample: 0.002
+  down_sample: 0.01
   key_point_sampling: 0.01
   #ICP
-  min_sample_distance: 0.02
+  min_sample_distance: 0.05
   max_correspondence_distance: 0.01
-  nr_iterations: 500
+  nr_iterations: 100
   #correspondence grouping
-  cg_size: 0.01
-  cg_thresh: 4.0
-  descr_dis_thrd: 0.1
+  cg_size: 0.05
+  cg_thresh: 1.0
+  descr_dis_thrd: 0.2
   # fine_align
   iteration: 10
   # other options
@@ -22,7 +23,7 @@ recognition:
 # Segmentation  
 segmentation:
   # general
-  down_sample: 0.004
+  down_sample: 0.01
   # clustering
   min_cluster_size: 100
   max_cluster_size: 50000
