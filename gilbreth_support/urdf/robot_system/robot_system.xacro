@@ -15,14 +15,14 @@
   <xacro:include filename="$(find ur_description)/urdf/ur10.urdf.xacro"/>
   <xacro:ur10_robot prefix="${robot_prefix}" joint_limited="true"/>
 
-  <!-- Vacuum Gripper -->
-  <xacro:include filename="$(find gilbreth_support)/urdf/vacuum_gripper/vacuum_gripper.urdf.xacro"/>
-  <xacro:vacuum_gripper_urdf prefix="${vacuum_gripper_prefix}"/>
+  <!-- Simple Vacuum Gripper -->
+  <xacro:include filename="$(find gilbreth_support)/urdf/simple_gripper/simple_gripper.urdf.xacro"/>
+  <xacro:simple_gripper_urdf prefix="${vacuum_gripper_prefix}"/>
 
-  <xacro:include filename="$(find gilbreth_support)/urdf/vacuum_gripper/vacuum_gripper.gazebo.xacro"/>
-  <xacro:vacuum_gripper_gazebo prefix="${vacuum_gripper_prefix}" gripper_link="robot_system_::robot_wrist_3_link">
+  <xacro:include filename="$(find gilbreth_support)/urdf/simple_gripper/simple_gripper.gazebo.xacro"/>
+  <xacro:simple_gripper_gazebo prefix="${vacuum_gripper_prefix}" gripper_link="robot_system_::robot_wrist_3_link">
     <drops_info/>
-  </xacro:vacuum_gripper_gazebo>
+  </xacro:simple_gripper_gazebo>
 
   <!-- Joints -->
   <joint name="robot_to_carriage" type="fixed">

@@ -1,37 +1,59 @@
-parameters:
-  lift_distance: 0.3
-  drop_distance: 0.3
-  conveyor_speed: 0.2
+env_param:
+  lift_distance: 0.1
+  drop_distance: 0.1
+  conveyor_velocity: 1.0
+  conveyor_power: 0.1
   conveyor_belt_length: 2.8
 
-pose_timers:
-  approach_time: 11.0
-  pick_time: 13.5
-  retreat_time: 15.0
-  place_time: 20.0
+pose_timer:
+  approach_time: -3.0
+  pick_time: 0
+  retreat_time: 3.0
+  place_time: 7.0
 
-bin_origins:
+pick_offset:
+  gear_part:
+    offset: 
+      xyz: [0.0, 0.0, -0.045094] #0.9220
+      rpy: [0.0, 0.0, 0.0] 
+  piston_rod_part:
+    offset: 
+      xyz: [0.0, 0.0, -0.045594] #0.8883
+      rpy: [0.0, 0.0, 0.0] 
+  pulley_part:
+    offset: 
+      xyz: [0.0, -0.05, -0.022294] #0.942
+      rpy: [0.0, 0.0, 0.0] 
+  gasket_part:
+    offset: 
+      xyz: [0.0, 0.0, -0.0462] #0.9087
+      rpy: [0.0, 0.0, 0.0] 
+  disk_part:
+    offset: 
+      xyz: [0.0, 0.0, -0.032594] #0.9453
+      rpy: [0.0, 0.0, 0.0] 
+
+bin_origin:
   gasket_part:
     pose:
-      xyz: [-0.3, 1.2, 0.9]
+      xyz: [-0.3, 1.2, 1.0]
       rpy: [0, 0, 0]
   piston_rod_part:
     pose:
-      xyz: [-0.3, 0.4, 0.9]
+      xyz: [-0.3, 0.4, 1.0]
       rpy: [0, 0, 0]
   gear_part:
     pose:
-      xyz: [-0.3, 0.4, 0.9]
+      xyz: [-0.3, -0.4, 1.0]
       rpy: [0, 0, 0]
   disk_part:
     pose:
-      xyz: [-0.3, -1.2, 0.9]
+      xyz: [-0.3, -1.2, 1.0]
       rpy: [0, 0, 0]
   pulley_part:
     pose:
-      xyz: [-0.3, -2.0, 0.9]
+      xyz: [-0.3, -2.0, 1.0]
       rpy: [0, 0, 0]
-
 
 robot_origin:
   pose:
