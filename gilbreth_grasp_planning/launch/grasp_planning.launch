@@ -13,8 +13,8 @@
   <!-- Robot Trajectory Execution -->
   <node name="robot_execution" type="robot_execution.py" pkg="gilbreth_grasp_planning" launch-prefix="$(arg terminal_cmd)" output="screen"/>
 
-  <!-- Trajectory Planning -->
-  <node name="trajectory_planning_node" type="trajectory_planner.py" pkg="gilbreth_grasp_planning" launch-prefix="$(arg terminal_cmd)" output="screen"/>
+  <!-- Uncomment to see trajectory execution aborted caused by goal tolerence violation>
+  <node name="robot_execution" type="robot_execution_goal_abortion.py" pkg="gilbreth_grasp_planning" launch-prefix="$(arg terminal_cmd)" output="screen"/-->
 
   <!-- Tool Pose Planning -->
   <rosparam command="load" file="$(find gilbreth_grasp_planning)/config/tool_plan_param.yaml" ns="gilbreth/tool_plan"/>    
