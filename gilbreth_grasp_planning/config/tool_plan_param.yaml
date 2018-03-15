@@ -22,7 +22,7 @@ pick_offset:
       rpy: [0.0, 0.0, 0.0] 
   pulley_part:
     offset: 
-      xyz: [0.0, -0.05, -0.022294] #0.942
+      xyz: [0.0, 0.0, -0.022294] #0.941
       rpy: [0.0, 0.0, 0.0] 
   gasket_part:
     offset: 
