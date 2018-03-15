@@ -14,7 +14,7 @@ recognition:
   cg_thresh: 1.0
   descr_dis_thrd: 0.2
   # fine_align
-  iteration: 10
+  iteration: 100
   # other options
   switches:
     ICP: false # if false, use correspondence grouping algorithm
