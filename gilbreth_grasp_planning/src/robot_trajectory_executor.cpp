@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <ros/callback_queue.h>
 #include <gilbreth_msgs/TargetToolPoses.h>
 #include <moveit_msgs/GetMotionPlan.h>
 #include <moveit/kinematic_constraints/utils.h>
@@ -9,6 +10,7 @@
 #include <algorithm>
 #include <gilbreth_gazebo/VacuumGripperState.h>
 #include <gilbreth_gazebo/VacuumGripperControl.h>
+#include <gilbreth_msgs/RobotTrajectories.h>
 #include <controller_manager_msgs/SwitchController.h>
 #include <moveit/robot_state/conversions.h>
 #include <atomic>
@@ -32,10 +34,10 @@ static const int ALLOWED_PLANNING_ATTEMPTS = 4;
 static const double WAIT_ATTACHED_TIME = 2.0f;
 
 static const std::string DEFAULT_PLANNER_ID = "RRTConnectkConfigDefault";
-static const std::string WAIT_POSE_NAME = "RAIL_ARM_WAIT";
 
 
 typedef std::shared_ptr<moveit::planning_interface::MoveGroupInterface> MoveGroupPtr;
+typedef moveit::planning_interface::MoveGroupInterface::Plan RobotPlan;
 
 using namespace moveit::core;
 
@@ -54,14 +56,34 @@ struct RobotControlInfo
 {
   std::string controller_name;
   std::string group_name;
+  std::string wait_pose_name;
 };
+
+struct TaskInfo
+{
+  std::string name;
+  RobotPlan trajectory_plan;
+  double delay;
+  ros::Time arrival_time;
+  RobotControlInfo robot_info;
+};
+
+struct RobotTasks
+{
+  gilbreth_msgs::TargetToolPoses target_poses;
+  std::vector<TaskInfo> trajectory_list;
+};
+
+
 
 class TrajExecutor
 {
 public:
-  TrajExecutor()
+  TrajExecutor():
+    traj_exec_nh_(),
+    traj_exec_spinner_(2,&traj_callback_queue_)
   {
-
+    traj_exec_nh_.setCallbackQueue(&traj_callback_queue_);
   }
 
   ~TrajExecutor()
@@ -85,12 +107,17 @@ public:
 
 protected:
 
+
   bool loadParameters()
   {
     nh_.param<std::string>("rail_group_name",robot_rail_info_.group_name,"robot_rail");
     nh_.param<std::string>("rail_group_name",robot_rail_info_.controller_name,"robot_rail_controller");
+    nh_.param<std::string>("rail_group_wait_pose",robot_rail_info_.wait_pose_name,"RAIL_ARM_WAIT");
+
     nh_.param<std::string>("arm_group_name",robot_arm_info_.group_name,"robot");
     nh_.param<std::string>("arm_group_name",robot_arm_info_.controller_name,"robot_controller");
+    nh_.param<std::string>("arm_group_wait_pose",robot_arm_info_.wait_pose_name,"ARM_WAIT");
+
     nh_.param<double>("preferred_pick_angle",prefered_pick_angle_,DEG2RAD(90.0));
 
     return true;
@@ -152,7 +179,9 @@ protected:
     }
 
     busy_ = false;
-    execution_timer_ = nh_.createTimer(ros::Duration(EXECUTE_TIMER_PERIOD),&TrajExecutor::executionTimerCb,this);
+    execution_timer_ = traj_exec_nh_.createTimer(ros::Duration(EXECUTE_TIMER_PERIOD),&TrajExecutor::executionTimerCb,this);
+    //execution_timer_ = traj_exec_nh_.createTimer(ros::Duration(EXECUTE_TIMER_PERIOD),&TrajExecutor::executeTrajectoryQueue,this);
+    traj_exec_spinner_.start();
 
     return true;
   }
@@ -161,6 +190,23 @@ protected:
   {
     targets_queue_.push_back(*msg);
     ROS_INFO("Received new target");
+
+    /* TODO:    improve execution of pre-planned trajectories.
+    gilbreth_msgs::TargetToolPoses target_poses(*msg);
+    std::vector<TaskInfo> target_trajectories = planTaskTrajectories(target_poses);
+    if(target_trajectories.empty())
+    {
+      return;
+    }
+
+    // adding to queue
+    RobotTasks robot_traj;
+    robot_traj.target_poses = target_poses;
+    robot_traj.trajectory_list = std::move(target_trajectories);
+    robot_tasks_queue_.push_back(robot_traj);
+
+    ROS_INFO("Target trajectories added to queue");
+    */
   }
 
   void executionTimerCb(const ros::TimerEvent& evnt)
@@ -208,10 +254,14 @@ protected:
       ~ScopeExit()
       {
 
-        //obj_->moveToWaitPose();
         if(!(*proceed_)) // a failure took place
         {
           obj_->moveToWaitPose();
+        }
+        else
+        {
+          obj_->moveToWaitPose(true);
+          ros::Duration(3.0).sleep();
         }
 
         obj_->setGripper(false);
@@ -219,6 +269,8 @@ protected:
         obj_->activateController(obj_->robot_rail_info_.controller_name,false);
         obj_->monitor_attached_timer_.stop();
         obj_->busy_ = false;
+
+
       }
 
       TrajExecutor* obj_;
@@ -230,6 +282,8 @@ protected:
     activateController(robot_arm_info_.controller_name,false);
     activateController(robot_rail_info_.controller_name,false);
     setGripper(false);
+    robot_rail_group->stop();
+    robot_arm_group->stop();
 
     // =================================================================
     // ===================== Approach move =====================
@@ -238,26 +292,26 @@ protected:
     targets_queue_.pop_front();
 
     target_poses.pick_approach.pose = rotate_pose_funct(target_poses.pick_approach.pose,pick_rotation);
-    boost::optional<moveit_msgs::RobotTrajectory> approach_traj = planTrajectory(robot_rail_group,target_poses.pick_approach);
+    boost::optional<RobotPlan> approach_traj = planTrajectory(robot_rail_group->getCurrentState(),
+                                                                                 robot_rail_group,target_poses.pick_approach);
     if(!approach_traj.is_initialized())
     {
       return;
     }
     ROS_INFO("Approach Motion Plan was found");
 
-    activateController(robot_rail_info_.controller_name,true);
-    if(!executeTrajectory(robot_rail_group,approach_traj.get()))
+    if(!executeTrajectory(robot_rail_info_,approach_traj.get()))
     {
       ROS_WARN("Approach Trajectory execution finished with errors");
       //return;
     }
-    activateController(robot_rail_info_.controller_name,false);
 
     // =================================================================
     // ===================== Pick move =====================
     // =================================================================
     target_poses.pick_pose.pose = rotate_pose_funct(target_poses.pick_pose.pose,pick_rotation);
-    boost::optional<moveit_msgs::RobotTrajectory> pick_traj = planTrajectory(robot_arm_group,target_poses.pick_pose);
+    boost::optional<RobotPlan> pick_traj = planTrajectory(robot_arm_group->getCurrentState(),
+                                                                             robot_arm_group,target_poses.pick_pose);
     if(!pick_traj.is_initialized())
     {
       return;
@@ -265,7 +319,7 @@ protected:
     ROS_INFO("Pick Motion Plan was found");
 
     // make sure we can reach it
-    ros::Duration traj_duration = pick_traj.get().joint_trajectory.points.back().time_from_start;
+    ros::Duration traj_duration = pick_traj.get().trajectory_.joint_trajectory.points.back().time_from_start;
     ros::Time pick_time = target_poses.pick_pose.header.stamp;
     ros::Time current_time = ros::Time::now();
     if(current_time + traj_duration > pick_time)
@@ -292,23 +346,22 @@ protected:
         monitor_attached_timer_.stop();
       }
     };
-    monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.1),monitor_attached_funct);
+    monitor_attached_timer_ = traj_exec_nh_.createTimer(ros::Duration(0.1),monitor_attached_funct);
 
-    activateController(robot_arm_info_.controller_name,true);
-    if(!executeTrajectory(robot_arm_group,pick_traj.get()))
+    if(!executeTrajectory(robot_arm_info_,pick_traj.get()))
     {
       ROS_WARN("Pick Trajectory execution finished with errors");
       //return;
     }
-    activateController(robot_arm_info_.controller_name,false);
     monitor_attached_timer_.stop();
 
     // wait until attached
     auto wait_until_attached_funct = [&](double wait_time) -> bool
     {
-      ros::Duration wait_period(0.05);
+      ros::Duration wait_period(0.01);
       double time_elapsed = 0.0;
       bool success = false;
+      std::cout<<std::endl;
       while(time_elapsed < wait_time)
       {
         if(gripper_attached_)
@@ -318,7 +371,9 @@ protected:
         }
         wait_period.sleep();
         time_elapsed += wait_period.toSec();
+        std::cout<<"\rWaiting until attached, time elapsed: "<<time_elapsed<<std::flush;
       }
+      std::cout<<std::endl;
       return success;
     };
 
@@ -345,27 +400,26 @@ protected:
 
       }
     };
-    monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.2),monitor_gripper_funct);
+    monitor_attached_timer_ = traj_exec_nh_.createTimer(ros::Duration(0.2),monitor_gripper_funct);
 
     // =================================================================
     // ===================== Retreat Move =====================
     // =================================================================
     target_poses.pick_retreat.pose = rotate_pose_funct(target_poses.pick_retreat.pose,pick_rotation);
 
-    boost::optional<moveit_msgs::RobotTrajectory> retreat_traj = planTrajectory(robot_arm_group,target_poses.pick_retreat);
+    boost::optional<RobotPlan> retreat_traj = planTrajectory(robot_arm_group->getCurrentState()
+                                                                                ,robot_arm_group,target_poses.pick_retreat);
     if(!retreat_traj.is_initialized())
     {
       return;
     }
     ROS_INFO("Retreat Motion Plan was found");
 
-    activateController(robot_arm_info_.controller_name,true);
-    if(!executeTrajectory(robot_arm_group,retreat_traj.get()))
+    if(!executeTrajectory(robot_arm_info_,retreat_traj.get()))
     {
       ROS_WARN("Retreat Trajectory execution finished with errors");
       //return;
     }
-    activateController(robot_arm_info_.controller_name,false);
 
     if(!proceed)
     {
@@ -377,7 +431,8 @@ protected:
     // =================================================================
     target_poses.place_pose.pose = rotate_pose_funct(target_poses.place_pose.pose,place_rotation);
 
-    boost::optional<moveit_msgs::RobotTrajectory> place_traj = planTrajectory(robot_rail_group,target_poses.place_pose,3.14);
+    boost::optional<RobotPlan> place_traj = planTrajectory(robot_rail_group->getCurrentState(),
+                                                                              robot_rail_group,target_poses.place_pose,3.14);
     if(!place_traj.is_initialized())
     {
       return;
@@ -389,13 +444,11 @@ protected:
       return;
     }
 
-    activateController(robot_rail_info_.controller_name,true);
-    if(!executeTrajectory(robot_rail_group,place_traj.get()))
+    if(!executeTrajectory(robot_rail_info_,place_traj.get()))
     {
       ROS_WARN("Place Trajectory execution finished with errors");
       //return;
     }
-    activateController(robot_rail_info_.controller_name,false);
 
     // detaching object
     monitor_attached_timer_.stop();
@@ -407,28 +460,395 @@ protected:
 
   }
 
-  bool moveToWaitPose()
+  bool moveToWaitPose(bool async = false)
   {
 
     activateController(robot_arm_info_.controller_name,false);
     activateController(robot_rail_info_.controller_name,true);
     MoveGroupPtr move_group = move_groups_map_[robot_rail_info_.group_name];
-    move_group->setNamedTarget(WAIT_POSE_NAME);
-    auto error_code = move_group->move();
+    move_group->setNamedTarget(robot_rail_info_.wait_pose_name);
+    moveit_msgs::MoveItErrorCodes error_code;
+    if(async)
+    {
+      error_code = move_group->asyncMove();
+    }
+    else
+    {
+      error_code = move_group->move();
+    }
+
     return error_code.val == moveit_msgs::MoveItErrorCodes::SUCCESS;
   }
 
-  bool executeTrajectory(MoveGroupPtr move_group, moveit_msgs::RobotTrajectory& traj)
+  bool executeTrajectory(const RobotControlInfo& robot_info, moveit_msgs::RobotTrajectory& traj)
   {
+    auto fuse_vectors = [](const std::vector<std::string>& keys, const std::vector<double>& vals) -> std::map<std::string,double>
+    {
+      std::map<std::string,double> m;
+      for(std::size_t i = 0; i < keys.size() ; i++)
+      {
+        m.insert(std::make_pair(keys[i],vals[i]));
+      }
+      return std::move(m);
+    };
+
+    activateController(robot_info.controller_name,true);
+    MoveGroupPtr move_group = move_groups_map_[robot_info.group_name];
     moveit::planning_interface::MoveGroupInterface::Plan plan;
     plan.planning_time_ = 5.0;
-    robotStateToRobotStateMsg(*move_group->getCurrentState(),plan.start_state_);
     plan.trajectory_ = traj;
+
+    RobotStatePtr robot_st(new RobotState(robot_model_));
+    std::map<std::string,double> start_joints = fuse_vectors(traj.joint_trajectory.joint_names,
+                                                             traj.joint_trajectory.points.front().positions);
+    robot_st->setToDefaultValues();
+    robot_st->setVariablePositions(start_joints);
+    robotStateToRobotStateMsg(*robot_st,plan.start_state_);
+
     auto res = move_group->execute(plan);
+    activateController(robot_info.controller_name,false);
     return res.val == moveit_msgs::MoveItErrorCodes::SUCCESS;
   }
 
-  boost::optional<moveit_msgs::RobotTrajectory> planTrajectory(MoveGroupPtr move_group,geometry_msgs::PoseStamped& pose_st,
+  bool executeTrajectory(const RobotControlInfo& robot_info, const RobotPlan& rp)
+  {
+
+    activateController(robot_info.controller_name,true);
+    MoveGroupPtr move_group = move_groups_map_[robot_info.group_name];
+    auto res = move_group->execute(rp);
+    activateController(robot_info.controller_name,false);
+    return res.val == moveit_msgs::MoveItErrorCodes::SUCCESS;
+  }
+
+  std::vector<TaskInfo> planTaskTrajectories(const gilbreth_msgs::TargetToolPoses& target_poses)
+  {
+    using namespace moveit::core;
+
+    auto fuse_vectors = [](const std::vector<std::string>& keys, const std::vector<double>& vals) -> std::map<std::string,double>
+    {
+      std::map<std::string,double> m;
+      for(std::size_t i = 0; i < keys.size() ; i++)
+      {
+        m.insert(std::make_pair(keys[i],vals[i]));
+      }
+      return std::move(m);
+    };
+
+    auto set_to_last_point = [&](const moveit_msgs::RobotTrajectory& traj,RobotState& rs)
+    {
+      std::map<std::string,double> jv;
+      jv = fuse_vectors(traj.joint_trajectory.joint_names,
+                               traj.joint_trajectory.points.back().positions);
+      //rs.setToDefaultValues();
+      rs.setVariablePositions(jv);
+    };
+
+    RobotStatePtr robot_st(new RobotState(robot_model_));
+    std::vector<TaskInfo> task_info;
+    TaskInfo task_traj;
+
+    MoveGroupPtr robot_arm_group = move_groups_map_[robot_arm_info_.group_name];
+    MoveGroupPtr robot_rail_group = move_groups_map_[robot_rail_info_.group_name];
+
+    // ========================================================
+    // planing start to approach
+    std::map<std::string,double> joint_vals = robot_rail_group->getNamedTargetValues(robot_rail_info_.wait_pose_name);
+    robot_st->setToDefaultValues();
+    robot_st->setVariablePositions(joint_vals);
+
+    auto start_to_approach_traj = planTrajectory(robot_st,robot_rail_group,target_poses.pick_approach,3.14);
+    if(!start_to_approach_traj.is_initialized())
+    {
+      ROS_ERROR("Planning from start to approach failed");
+      return {};
+    }
+    task_traj = TaskInfo();
+    task_traj.trajectory_plan = std::move(start_to_approach_traj.get());
+    task_traj.name = "approach";
+    task_traj.robot_info = robot_rail_info_;
+    task_traj.delay = -1.0; // no delay
+    task_info.push_back(task_traj);
+
+    // ========================================================
+    // planing from approach to pick
+    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    auto approach_to_pick_traj = planTrajectory(robot_st,robot_arm_group,target_poses.pick_pose,3.14);
+    if(!approach_to_pick_traj.is_initialized())
+    {
+      ROS_ERROR("Planning from approach to pick failed");
+      return {};
+    }
+    task_traj = TaskInfo();
+    task_traj.trajectory_plan = std::move(approach_to_pick_traj.get());
+    task_traj.name = "pick";
+    task_traj.robot_info = robot_arm_info_;
+    task_traj.delay = -1.0; // no delay
+    task_info.push_back(task_traj);
+
+    // ========================================================
+    // planing from pick to retreat
+    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    auto pick_to_retreat_traj = planTrajectory(robot_st,robot_arm_group,target_poses.pick_retreat,0.1);
+    if(!pick_to_retreat_traj.is_initialized())
+    {
+      ROS_ERROR("Planning from pick to retreat failed");
+      return {};
+    }
+    task_traj = TaskInfo();
+    task_traj.trajectory_plan = std::move(pick_to_retreat_traj.get());
+    task_traj.name = "retreat";
+    task_traj.robot_info = robot_arm_info_;
+    task_traj.delay = -1.0; // no delay
+    task_info.push_back(task_traj);
+
+    // ========================================================
+    // planing from retreat to place
+    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    auto retreat_to_place_traj = planTrajectory(robot_st,robot_rail_group,target_poses.place_pose,3.14);
+    if(!retreat_to_place_traj.is_initialized())
+    {
+      ROS_ERROR("Planning from retreat to place failed");
+      return {};
+    }
+    task_traj = TaskInfo();
+    task_traj.trajectory_plan = std::move(retreat_to_place_traj.get());
+    task_traj.name = "place";
+    task_traj.robot_info = robot_rail_info_;
+    task_traj.delay = -1.0; // no delay
+    task_info.push_back(task_traj);
+
+
+    // ========================================================
+    // planing from place to wait
+    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    robot_rail_group->setNamedTarget(robot_rail_info_.wait_pose_name);
+    robot_rail_group->setStartState(*robot_st);
+    moveit::planning_interface::MoveGroupInterface::Plan plan;
+    if(robot_rail_group->plan(plan).val != moveit_msgs::MoveItErrorCodes::SUCCESS)
+    {
+      ROS_ERROR("Planning from place to place failed");
+      return {};
+    }
+    task_traj = TaskInfo();
+    task_traj.trajectory_plan = std::move(plan);
+    task_traj.name = "return";
+    task_traj.robot_info = robot_rail_info_;
+    task_traj.delay = -1.0; // no delay
+    task_info.push_back(task_traj);
+
+
+    return task_info;
+  }
+
+  void executeTrajectoryQueue(const ros::TimerEvent& evnt)
+  {
+    /**
+     * DON'T USE THIS
+     * TODO: improve or remove
+     * Moveit can't seem to plan and move at the same time.  This function might produce such scenario.
+     */
+    static const int PICK_TRAJ_INDEX = 1;
+    std::atomic<bool> succeeded(true);
+
+    // allows conducting clean up actions before exiting
+    class ScopeExit
+    {
+    public:
+      ScopeExit(TrajExecutor* obj,std::atomic<bool>* succeeded):
+        obj_(obj),
+        succeeded_(succeeded)
+      {
+
+      }
+
+      ~ScopeExit()
+      {
+
+        //obj_->moveToWaitPose();
+        if(!(*succeeded_)) // a failure took place
+        {
+          obj_->moveToWaitPose();
+        }
+
+        obj_->setGripper(false);
+        obj_->activateController(obj_->robot_arm_info_.controller_name,false);
+        obj_->activateController(obj_->robot_rail_info_.controller_name,false);
+        obj_->monitor_attached_timer_.stop();
+        obj_->busy_ = false;
+      }
+
+      TrajExecutor* obj_;
+      std::atomic<bool>* succeeded_;
+    };
+
+    if(robot_tasks_queue_.empty())
+    {
+      return;
+    }
+
+    if(busy_)
+    {
+      ROS_WARN("Busy handling another target at the moment...");
+      return;
+    }
+    busy_ = true;
+
+    // clear all active componets
+    activateController(robot_arm_info_.controller_name,false);
+    activateController(robot_rail_info_.controller_name,false);
+    setGripper(false);
+
+    // initializing variables
+    ScopeExit sc(this,&succeeded); // will exit gracefully when exiting scope
+    RobotTasks rob_traj = robot_tasks_queue_.front();
+    robot_tasks_queue_.pop_front();
+
+    // ===================================================
+    // Pre checks
+    // make sure we can reach it
+    auto compute_traj_time = [](const std::vector<TaskInfo>& task_trajs, int count) -> ros::Duration
+    {
+      double total_time = 0.0;
+      for(std::size_t i = 0; i < count; i++)
+      {
+        const TaskInfo& task_info = task_trajs[i];
+        ros::Duration traj_duration = task_info.trajectory_plan.trajectory_.joint_trajectory.points.back().time_from_start;
+        total_time += traj_duration.toSec();
+      }
+      return std::move(ros::Duration(total_time));
+    };
+
+    geometry_msgs::PoseStamped& pick_pose = rob_traj.target_poses.pick_pose;
+    ros::Duration traj_duration = compute_traj_time(rob_traj.trajectory_list,PICK_TRAJ_INDEX+1);
+    ros::Time pick_time(pick_pose.header.stamp.toSec());
+    ros::Time current_time = ros::Time::now();
+    if(current_time + traj_duration > pick_time)
+    {
+      ROS_ERROR("Robot won't make it in time, dismissing object");
+      return;
+    }
+
+    // =========================================
+    // declaring helper functions
+
+    // issues a stop when contact is first made made
+    MoveGroupPtr robot_arm_group = move_groups_map_[robot_arm_info_.group_name];
+    MoveGroupPtr robot_rail_group = move_groups_map_[robot_rail_info_.group_name];
+    auto monitor_attached_funct = [&](const ros::TimerEvent& evnt){
+
+      //std::cout<<"Checking Attached\r"<<std::flush;
+      if(gripper_attached_)
+      {
+        ROS_INFO("Object attached");
+        robot_arm_group->stop();
+        robot_rail_group->stop();
+        monitor_attached_timer_.stop();
+      }
+    };
+
+    // used to wait for contact
+    auto wait_until_attached_funct = [&](double wait_time) -> bool
+    {
+      ros::Duration wait_period(0.1);
+      double time_elapsed = 0.0;
+      bool success = false;
+      std::cout<<std::endl;
+      while(time_elapsed < wait_time)
+      {
+        if(gripper_attached_)
+        {
+          success = true;
+          break;
+        }
+        wait_period.sleep();
+        time_elapsed += wait_period.toSec();
+        std::cout<<"\rWaiting until attached, time elapsed: "<<time_elapsed<<std::flush;
+      }
+      robot_arm_group->stop();
+      std::cout<<std::endl;
+      return success;
+    };
+
+    // used to monitor that the gripper still has an attached object
+    auto monitor_gripper_funct = [&](const ros::TimerEvent& evnt){
+      if(!gripper_attached_)
+      {
+        succeeded = false;
+        ROS_ERROR("Object  became detached");
+        robot_rail_group->stop();
+        robot_arm_group->stop();
+        monitor_attached_timer_.stop();
+      }
+    };
+
+
+    // ===================================================
+    // Trajectory Execution
+    for(auto& traj : rob_traj.trajectory_list)
+    {
+      if(traj.name == "pick")
+      {
+        if(!setGripper(true))
+        {
+          ROS_ERROR("Gripper control failed");
+          return ;
+        }
+
+        // will stop execution when contact is first made
+        monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.1),monitor_attached_funct);
+
+        // wait until object gets to pick position
+        ros::Duration wait_duration = (pick_time - current_time) - traj_duration;
+        ROS_INFO("Waiting %f seconds for object to arrive to pick position",wait_duration.toSec());
+        wait_duration.sleep();
+      }
+
+      ROS_INFO("Moving to %s",traj.name.c_str());
+      if(!executeTrajectory(traj.robot_info,traj.trajectory_plan))
+      {
+        ROS_WARN("%s Trajectory execution finished with errors",traj.name.c_str());
+        succeeded = false;
+        return;
+      }
+
+      if(traj.name == "pick")
+      {
+        // waiting to ensure object is attached
+        ROS_INFO("Waiting to make contact");
+        if(!wait_until_attached_funct(WAIT_ATTACHED_TIME))
+        {
+          ROS_ERROR("Timed out waiting to grab object");
+          succeeded = false;
+          return;
+        }
+
+        ROS_INFO("Object attached to gripper");
+
+        // will stop if contact is broken
+        monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.2),monitor_gripper_funct);
+      }
+
+      if(traj.name == "place")
+      {
+        monitor_attached_timer_.stop();
+        if(!setGripper(false))
+        {
+          ROS_ERROR("Gripper control failed");
+          return ;
+        }
+      }
+
+      if(!succeeded)
+      {
+        return;
+      }
+    }
+
+  }
+
+
+
+  boost::optional<RobotPlan> planTrajectory(RobotStateConstPtr start_state,MoveGroupPtr move_group,const geometry_msgs::PoseStamped& pose_st,
                                                                double z_angle_tolerance = 0.1)
   {
     boost::optional<moveit_msgs::Constraints> goal_constraints = createGoalConstraints(
@@ -448,7 +868,7 @@ protected:
     srv.request.motion_plan_request.allowed_planning_time = ALLOWED_PLANNING_TIME;
     srv.request.motion_plan_request.num_planning_attempts = ALLOWED_PLANNING_ATTEMPTS;
     srv.request.motion_plan_request.planner_id = DEFAULT_PLANNER_ID;
-    //srv.request.motion_plan_request.start_state = move_group->getCurrentState();
+    robot_state::robotStateToRobotStateMsg(*start_state,srv.request.motion_plan_request.start_state,true);
 
     if(!planning_client_.call(srv))
     {
@@ -463,10 +883,14 @@ protected:
     }
 
     curateTrajectory(srv.response.motion_plan_response.trajectory.joint_trajectory);
-    return srv.response.motion_plan_response.trajectory;
+    RobotPlan plan;
+    plan.planning_time_ = 0.0; // doesn't matter
+    plan.trajectory_ = srv.response.motion_plan_response.trajectory;
+    plan.start_state_ = srv.response.motion_plan_response.trajectory_start;
+    return plan;
   }
 
-  boost::optional<moveit_msgs::Constraints> createGoalConstraints(geometry_msgs::PoseStamped& pose_st,std::string group_name,
+  boost::optional<moveit_msgs::Constraints> createGoalConstraints(const geometry_msgs::PoseStamped& pose_st,std::string group_name,
                                                                   double z_angle_tolerance = 0.1)
   {
     boost::optional<moveit_msgs::Constraints> constraints;
@@ -522,6 +946,12 @@ protected:
   }
 
   ros::NodeHandle nh_;
+
+  // execute trajectories in its own callback queue to avoid blocking
+  ros::NodeHandle traj_exec_nh_;
+  ros::CallbackQueue traj_callback_queue_;
+  ros::AsyncSpinner traj_exec_spinner_;
+
   ros::ServiceClient planning_client_;
   ros::ServiceClient gripper_control_client_;
   ros::ServiceClient controller_switch_client_;
@@ -538,6 +968,7 @@ protected:
   double prefered_pick_angle_;
 
   std::list<gilbreth_msgs::TargetToolPoses> targets_queue_;
+  std::list<RobotTasks> robot_tasks_queue_;
   std::atomic<bool> gripper_attached_;
   std::atomic<bool> busy_;
 
