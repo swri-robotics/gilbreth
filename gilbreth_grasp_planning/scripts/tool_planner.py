@@ -9,6 +9,7 @@ from gilbreth_msgs.msg import TargetToolPoses
 TOOL_POSE_TOPIC='/gilbreth/target_tool_poses'
 OBJ_DETECTION_TOPIC = '/recognition_result_world'
 GENERAL_PARAM = '/gilbreth/tool_plan'
+DEFAULT_WORLD_FRAME = 'world'
 
 class PlanningProperties():
     def __init__(self):
@@ -93,15 +94,15 @@ class ToolPlanner():
             tool_msg.place_pose.pose.position.z = bin_pose['xyz'][2] + self.property.drop
             tool_msg.place_pose.pose.orientation = self.obj_data.pose.orientation
     
-            tool_msg.pick_approach.header.frame_id = 'world_frame'
+            tool_msg.pick_approach.header.frame_id = DEFAULT_WORLD_FRAME
             total_moving_length = self.property.length - tool_msg.pick_approach.pose.position.y 
             total_time = total_moving_length / self.property.vel
             tool_msg.pick_approach.header.stamp = self.obj_data.detection_time + rospy.Duration(total_time + self.property.approach_time)   
-            tool_msg.pick_pose.header.frame_id = 'world_frame'
+            tool_msg.pick_pose.header.frame_id = DEFAULT_WORLD_FRAME
             tool_msg.pick_pose.header.stamp = self.obj_data.detection_time + rospy.Duration(total_time + self.property.pick_time)
-            tool_msg.pick_retreat.header.frame_id = 'world_frame'
+            tool_msg.pick_retreat.header.frame_id = DEFAULT_WORLD_FRAME
             tool_msg.pick_retreat.header.stamp = self.obj_data.detection_time + rospy.Duration(total_time + self.property.retreat_time)
-            tool_msg.place_pose.header.frame_id = 'world_frame'
+            tool_msg.place_pose.header.frame_id = DEFAULT_WORLD_FRAME
             tool_msg.place_pose.header.stamp = self.obj_data.detection_time + rospy.Duration(total_time + self.property.place_time)
      
             rospy.loginfo("publishing tool poses.")
