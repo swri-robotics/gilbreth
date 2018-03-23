@@ -13,6 +13,7 @@
 #include <gilbreth_msgs/RobotTrajectories.h>
 #include <controller_manager_msgs/SwitchController.h>
 #include <moveit/robot_state/conversions.h>
+#include <moveit/trajectory_processing/iterative_time_parameterization.h>
 #include <atomic>
 #include <Eigen/Core>
 #include <cmath>
@@ -32,7 +33,7 @@ static const double EXECUTE_TIMER_PERIOD = 0.1;
 static const double ALLOWED_PLANNING_TIME = 1.0;
 static const int ALLOWED_PLANNING_ATTEMPTS = 4;
 static const double WAIT_ATTACHED_TIME = 2.0f;
-
+static const double MAX_STATE_DISTANCE = 0.25f;
 static const std::string DEFAULT_PLANNER_ID = "RRTConnectkConfigDefault";
 
 
@@ -49,8 +50,43 @@ void curateTrajectory(trajectory_msgs::JointTrajectory& jt)
   {
     ROS_ERROR("Trajectory is empty");
   }
-  jt.points.front().time_from_start = ros::Duration(0.01);
+
+  double time_incrm = 0.01;
+  double prev_time = 0.0;
+  int count = 0;
+  for(auto& jp :jt.points)
+  {
+    if(jp.time_from_start.toSec() <= prev_time)
+    {
+      count++;
+      prev_time = count*time_incrm;
+      jp.time_from_start = ros::Duration(prev_time);
+      continue;
+    }
+    break;
+  }
 }
+
+
+std::map<std::string,double> createJointsMap(const std::vector<std::string>& keys,
+                                             const std::vector<double>& vals)
+{
+  std::map<std::string,double> m;
+  for(std::size_t i = 0; i < keys.size() ; i++)
+  {
+    m.insert(std::make_pair(keys[i],vals[i]));
+  }
+  return std::move(m);
+};
+
+void setToLastPoint(const moveit_msgs::RobotTrajectory& traj,RobotState& rs)
+{
+  std::map<std::string,double> jv;
+  jv = createJointsMap(traj.joint_trajectory.joint_names,
+                           traj.joint_trajectory.points.back().positions);
+  //rs.setToDefaultValues();
+  rs.setVariablePositions(jv);
+};
 
 struct RobotControlInfo
 {
@@ -73,6 +109,8 @@ struct RobotTasks
   gilbreth_msgs::TargetToolPoses target_poses;
   std::vector<TaskInfo> trajectory_list;
 };
+
+
 
 
 
@@ -110,15 +148,21 @@ protected:
 
   bool loadParameters()
   {
-    nh_.param<std::string>("rail_group_name",robot_rail_info_.group_name,"robot_rail");
-    nh_.param<std::string>("rail_group_name",robot_rail_info_.controller_name,"robot_rail_controller");
-    nh_.param<std::string>("rail_group_wait_pose",robot_rail_info_.wait_pose_name,"RAIL_ARM_WAIT");
+    ros::NodeHandle ph("~");
+    ph.param<std::string>("rail_group_name",robot_rail_info_.group_name,"robot_rail");
+    ph.param<std::string>("rail_group_name",robot_rail_info_.controller_name,"robot_rail_controller");
+    ph.param<std::string>("rail_group_wait_pose",robot_rail_info_.wait_pose_name,"RAIL_ARM_WAIT");
 
-    nh_.param<std::string>("arm_group_name",robot_arm_info_.group_name,"robot");
-    nh_.param<std::string>("arm_group_name",robot_arm_info_.controller_name,"robot_controller");
-    nh_.param<std::string>("arm_group_wait_pose",robot_arm_info_.wait_pose_name,"ARM_WAIT");
+    ph.param<std::string>("arm_group_name",robot_arm_info_.group_name,"robot");
+    ph.param<std::string>("arm_group_name",robot_arm_info_.controller_name,"robot_controller");
+    ph.param<std::string>("arm_group_wait_pose",robot_arm_info_.wait_pose_name,"ARM_WAIT");
 
-    nh_.param<double>("preferred_pick_angle",prefered_pick_angle_,DEG2RAD(90.0));
+    ph.param<double>("preferred_pick_angle",prefered_pick_angle_,DEG2RAD(90.0));
+    ph.param<int>("cartesian_num_points",cartesian_num_points_,40);
+    ph.param<double>("cartesian_eef_max_step",cartesian_eef_max_step_,0.1);
+    ph.param<double>("cartesian_jump_threshold",cartesian_jump_threshold_,2.0);
+    ph.param<double>("cartesian_dynamics_scaling",cartesian_dynamics_scaling_,0.2);
+
 
     return true;
   }
@@ -179,8 +223,8 @@ protected:
     }
 
     busy_ = false;
-    execution_timer_ = traj_exec_nh_.createTimer(ros::Duration(EXECUTE_TIMER_PERIOD),&TrajExecutor::executionTimerCb,this);
-    //execution_timer_ = traj_exec_nh_.createTimer(ros::Duration(EXECUTE_TIMER_PERIOD),&TrajExecutor::executeTrajectoryQueue,this);
+    //execution_timer_ = traj_exec_nh_.createTimer(ros::Duration(EXECUTE_TIMER_PERIOD),&TrajExecutor::executionTimerCb,this);
+    execution_timer_ = traj_exec_nh_.createTimer(ros::Duration(EXECUTE_TIMER_PERIOD),&TrajExecutor::executeTrajectoryQueue,this);
     traj_exec_spinner_.start();
 
     return true;
@@ -190,23 +234,6 @@ protected:
   {
     targets_queue_.push_back(*msg);
     ROS_INFO("Received new target");
-
-    /* TODO:    improve execution of pre-planned trajectories.
-    gilbreth_msgs::TargetToolPoses target_poses(*msg);
-    std::vector<TaskInfo> target_trajectories = planTaskTrajectories(target_poses);
-    if(target_trajectories.empty())
-    {
-      return;
-    }
-
-    // adding to queue
-    RobotTasks robot_traj;
-    robot_traj.target_poses = target_poses;
-    robot_traj.trajectory_list = std::move(target_trajectories);
-    robot_tasks_queue_.push_back(robot_traj);
-
-    ROS_INFO("Target trajectories added to queue");
-    */
   }
 
   void executionTimerCb(const ros::TimerEvent& evnt)
@@ -244,9 +271,9 @@ protected:
     class ScopeExit
     {
     public:
-      ScopeExit(TrajExecutor* obj,std::atomic<bool>* proceed):
+      ScopeExit(TrajExecutor* obj,std::atomic<bool>* success):
         obj_(obj),
-        proceed_(proceed)
+        success_(success)
       {
 
       }
@@ -254,14 +281,14 @@ protected:
       ~ScopeExit()
       {
 
-        if(!(*proceed_)) // a failure took place
+        if(!(*success_)) // a failure took place
         {
           obj_->moveToWaitPose();
         }
         else
         {
           obj_->moveToWaitPose(true);
-          ros::Duration(3.0).sleep();
+          ros::Duration(2.0).sleep();
         }
 
         obj_->setGripper(false);
@@ -269,12 +296,10 @@ protected:
         obj_->activateController(obj_->robot_rail_info_.controller_name,false);
         obj_->monitor_attached_timer_.stop();
         obj_->busy_ = false;
-
-
       }
 
       TrajExecutor* obj_;
-      std::atomic<bool>* proceed_;
+      std::atomic<bool>* success_;
 
     };
     ScopeExit sc(this,&proceed);
@@ -292,7 +317,7 @@ protected:
     targets_queue_.pop_front();
 
     target_poses.pick_approach.pose = rotate_pose_funct(target_poses.pick_approach.pose,pick_rotation);
-    boost::optional<RobotPlan> approach_traj = planTrajectory(robot_rail_group->getCurrentState(),
+    boost::optional<RobotPlan> approach_traj = planJointTrajectory(robot_rail_group->getCurrentState(),
                                                                                  robot_rail_group,target_poses.pick_approach);
     if(!approach_traj.is_initialized())
     {
@@ -302,15 +327,16 @@ protected:
 
     if(!executeTrajectory(robot_rail_info_,approach_traj.get()))
     {
-      ROS_WARN("Approach Trajectory execution finished with errors");
-      //return;
+      ROS_ERROR("Approach Trajectory execution finished with errors");
+      proceed = false;
+      return;
     }
 
     // =================================================================
     // ===================== Pick move =====================
     // =================================================================
     target_poses.pick_pose.pose = rotate_pose_funct(target_poses.pick_pose.pose,pick_rotation);
-    boost::optional<RobotPlan> pick_traj = planTrajectory(robot_arm_group->getCurrentState(),
+    boost::optional<RobotPlan> pick_traj = planJointTrajectory(robot_arm_group->getCurrentState(),
                                                                              robot_arm_group,target_poses.pick_pose);
     if(!pick_traj.is_initialized())
     {
@@ -350,8 +376,9 @@ protected:
 
     if(!executeTrajectory(robot_arm_info_,pick_traj.get()))
     {
-      ROS_WARN("Pick Trajectory execution finished with errors");
-      //return;
+      ROS_ERROR("Pick Trajectory execution finished with errors");
+      proceed = false;
+      return;
     }
     monitor_attached_timer_.stop();
 
@@ -407,7 +434,7 @@ protected:
     // =================================================================
     target_poses.pick_retreat.pose = rotate_pose_funct(target_poses.pick_retreat.pose,pick_rotation);
 
-    boost::optional<RobotPlan> retreat_traj = planTrajectory(robot_arm_group->getCurrentState()
+    boost::optional<RobotPlan> retreat_traj = planJointTrajectory(robot_arm_group->getCurrentState()
                                                                                 ,robot_arm_group,target_poses.pick_retreat);
     if(!retreat_traj.is_initialized())
     {
@@ -417,8 +444,9 @@ protected:
 
     if(!executeTrajectory(robot_arm_info_,retreat_traj.get()))
     {
-      ROS_WARN("Retreat Trajectory execution finished with errors");
-      //return;
+      ROS_ERROR("Retreat Trajectory execution finished with errors");
+      proceed = false;
+      return;
     }
 
     if(!proceed)
@@ -431,7 +459,7 @@ protected:
     // =================================================================
     target_poses.place_pose.pose = rotate_pose_funct(target_poses.place_pose.pose,place_rotation);
 
-    boost::optional<RobotPlan> place_traj = planTrajectory(robot_rail_group->getCurrentState(),
+    boost::optional<RobotPlan> place_traj = planJointTrajectory(robot_rail_group->getCurrentState(),
                                                                               robot_rail_group,target_poses.place_pose,3.14);
     if(!place_traj.is_initialized())
     {
@@ -446,8 +474,9 @@ protected:
 
     if(!executeTrajectory(robot_rail_info_,place_traj.get()))
     {
-      ROS_WARN("Place Trajectory execution finished with errors");
-      //return;
+      ROS_ERROR("Place Trajectory execution finished with errors");
+      proceed = false;
+      return;
     }
 
     // detaching object
@@ -517,31 +546,36 @@ protected:
     MoveGroupPtr move_group = move_groups_map_[robot_info.group_name];
     auto res = move_group->execute(rp);
     activateController(robot_info.controller_name,false);
-    return res.val == moveit_msgs::MoveItErrorCodes::SUCCESS;
+
+    bool success = res.val == moveit_msgs::MoveItErrorCodes::SUCCESS;
+    if(!success) // check if at least it is close enough
+    {
+      ROS_WARN("Trajectory didn't run to completion, checking if close enough");
+      RobotStatePtr rs_final(new RobotState(robot_model_));
+      robotStateMsgToRobotState(rp.start_state_,*rs_final);
+      setToLastPoint(rp.trajectory_,*rs_final);
+
+      RobotStatePtr rs_current = move_group->getCurrentState();
+      if(rs_current)
+      {
+        std::vector<double> jf, jc;
+        rs_current->copyJointGroupPositions(move_group->getName(),jc);
+        rs_final->copyJointGroupPositions(move_group->getName(),jf);
+
+        success = std::equal(jf.begin(),jf.end(),jc.data(),[](const double& a,const double &b){
+          return std::abs(a - b) < MAX_STATE_DISTANCE;
+        });
+      }
+    }
+
+    return success;
   }
 
   std::vector<TaskInfo> planTaskTrajectories(const gilbreth_msgs::TargetToolPoses& target_poses)
   {
     using namespace moveit::core;
 
-    auto fuse_vectors = [](const std::vector<std::string>& keys, const std::vector<double>& vals) -> std::map<std::string,double>
-    {
-      std::map<std::string,double> m;
-      for(std::size_t i = 0; i < keys.size() ; i++)
-      {
-        m.insert(std::make_pair(keys[i],vals[i]));
-      }
-      return std::move(m);
-    };
 
-    auto set_to_last_point = [&](const moveit_msgs::RobotTrajectory& traj,RobotState& rs)
-    {
-      std::map<std::string,double> jv;
-      jv = fuse_vectors(traj.joint_trajectory.joint_names,
-                               traj.joint_trajectory.points.back().positions);
-      //rs.setToDefaultValues();
-      rs.setVariablePositions(jv);
-    };
 
     RobotStatePtr robot_st(new RobotState(robot_model_));
     std::vector<TaskInfo> task_info;
@@ -556,7 +590,8 @@ protected:
     robot_st->setToDefaultValues();
     robot_st->setVariablePositions(joint_vals);
 
-    auto start_to_approach_traj = planTrajectory(robot_st,robot_rail_group,target_poses.pick_approach,3.14);
+    //auto start_to_approach_traj = planJointTrajectory(robot_st,robot_rail_group,target_poses.pick_approach,3.14);
+    auto start_to_approach_traj = planCartesianTrajectory(robot_st,robot_rail_group,target_poses.pick_approach);
     if(!start_to_approach_traj.is_initialized())
     {
       ROS_ERROR("Planning from start to approach failed");
@@ -571,8 +606,9 @@ protected:
 
     // ========================================================
     // planing from approach to pick
-    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
-    auto approach_to_pick_traj = planTrajectory(robot_st,robot_arm_group,target_poses.pick_pose,3.14);
+    setToLastPoint(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    //auto approach_to_pick_traj = planJointTrajectory(robot_st,robot_arm_group,target_poses.pick_pose,0.1);
+    auto approach_to_pick_traj = planCartesianTrajectory(robot_st,robot_arm_group,target_poses.pick_pose);
     if(!approach_to_pick_traj.is_initialized())
     {
       ROS_ERROR("Planning from approach to pick failed");
@@ -587,8 +623,9 @@ protected:
 
     // ========================================================
     // planing from pick to retreat
-    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
-    auto pick_to_retreat_traj = planTrajectory(robot_st,robot_arm_group,target_poses.pick_retreat,0.1);
+    setToLastPoint(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    //auto pick_to_retreat_traj = planJointTrajectory(robot_st,robot_arm_group,target_poses.pick_retreat,0.1);
+    auto pick_to_retreat_traj = planCartesianTrajectory(robot_st,robot_arm_group,target_poses.pick_retreat);
     if(!pick_to_retreat_traj.is_initialized())
     {
       ROS_ERROR("Planning from pick to retreat failed");
@@ -603,8 +640,10 @@ protected:
 
     // ========================================================
     // planing from retreat to place
-    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
-    auto retreat_to_place_traj = planTrajectory(robot_st,robot_rail_group,target_poses.place_pose,3.14);
+    setToLastPoint(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    auto retreat_to_place_traj = planJointTrajectory(robot_st,robot_rail_group,target_poses.place_pose,3.14);
+    //auto retreat_to_place_traj = planCartesianTrajectory(robot_st,robot_rail_group,target_poses.place_pose);
+
     if(!retreat_to_place_traj.is_initialized())
     {
       ROS_ERROR("Planning from retreat to place failed");
@@ -620,7 +659,7 @@ protected:
 
     // ========================================================
     // planing from place to wait
-    set_to_last_point(task_info.back().trajectory_plan.trajectory_,*robot_st);
+    setToLastPoint(task_info.back().trajectory_plan.trajectory_,*robot_st);
     robot_rail_group->setNamedTarget(robot_rail_info_.wait_pose_name);
     robot_rail_group->setStartState(*robot_st);
     moveit::planning_interface::MoveGroupInterface::Plan plan;
@@ -665,15 +704,16 @@ protected:
       {
 
         //obj_->moveToWaitPose();
-        if(!(*succeeded_)) // a failure took place
-        {
-          obj_->moveToWaitPose();
-        }
 
         obj_->setGripper(false);
+        obj_->monitor_attached_timer_.stop();
+        if(!(*succeeded_)) // a failure took place
+        {
+          obj_->moveToWaitPose(false);
+        }
+
         obj_->activateController(obj_->robot_arm_info_.controller_name,false);
         obj_->activateController(obj_->robot_rail_info_.controller_name,false);
-        obj_->monitor_attached_timer_.stop();
         obj_->busy_ = false;
       }
 
@@ -681,7 +721,8 @@ protected:
       std::atomic<bool>* succeeded_;
     };
 
-    if(robot_tasks_queue_.empty())
+    // check buffer
+    if(targets_queue_.empty())
     {
       return;
     }
@@ -691,17 +732,28 @@ protected:
       ROS_WARN("Busy handling another target at the moment...");
       return;
     }
+
+    // initializing scope exit variable
+    ScopeExit sc(this,&succeeded); // will exit gracefully when exiting scope
     busy_ = true;
+
+    ROS_INFO("Planning all target trajectories");
+    RobotTasks robot_traj;
+    robot_traj.target_poses = std::move(targets_queue_.front());
+    robot_traj.trajectory_list = std::move(planTaskTrajectories(robot_traj.target_poses));
+    targets_queue_.pop_front();
+    if(robot_traj.trajectory_list.empty())
+    {
+      return;
+    }
+    ROS_INFO("Computed target trajectories, proceeding with execution");
+
 
     // clear all active componets
     activateController(robot_arm_info_.controller_name,false);
     activateController(robot_rail_info_.controller_name,false);
     setGripper(false);
 
-    // initializing variables
-    ScopeExit sc(this,&succeeded); // will exit gracefully when exiting scope
-    RobotTasks rob_traj = robot_tasks_queue_.front();
-    robot_tasks_queue_.pop_front();
 
     // ===================================================
     // Pre checks
@@ -718,8 +770,8 @@ protected:
       return std::move(ros::Duration(total_time));
     };
 
-    geometry_msgs::PoseStamped& pick_pose = rob_traj.target_poses.pick_pose;
-    ros::Duration traj_duration = compute_traj_time(rob_traj.trajectory_list,PICK_TRAJ_INDEX+1);
+    geometry_msgs::PoseStamped& pick_pose = robot_traj.target_poses.pick_pose;
+    ros::Duration traj_duration = compute_traj_time(robot_traj.trajectory_list,PICK_TRAJ_INDEX+1);
     ros::Time pick_time(pick_pose.header.stamp.toSec());
     ros::Time current_time = ros::Time::now();
     if(current_time + traj_duration > pick_time)
@@ -784,7 +836,7 @@ protected:
 
     // ===================================================
     // Trajectory Execution
-    for(auto& traj : rob_traj.trajectory_list)
+    for(auto& traj : robot_traj.trajectory_list)
     {
       if(traj.name == "pick")
       {
@@ -795,7 +847,7 @@ protected:
         }
 
         // will stop execution when contact is first made
-        monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.1),monitor_attached_funct);
+        monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.02),monitor_attached_funct);
 
         // wait until object gets to pick position
         ros::Duration wait_duration = (pick_time - current_time) - traj_duration;
@@ -806,7 +858,7 @@ protected:
       ROS_INFO("Moving to %s",traj.name.c_str());
       if(!executeTrajectory(traj.robot_info,traj.trajectory_plan))
       {
-        ROS_WARN("%s Trajectory execution finished with errors",traj.name.c_str());
+        ROS_ERROR("%s Trajectory execution finished with errors",traj.name.c_str());
         succeeded = false;
         return;
       }
@@ -825,7 +877,7 @@ protected:
         ROS_INFO("Object attached to gripper");
 
         // will stop if contact is broken
-        monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.2),monitor_gripper_funct);
+        monitor_attached_timer_ = nh_.createTimer(ros::Duration(0.05),monitor_gripper_funct);
       }
 
       if(traj.name == "place")
@@ -848,7 +900,7 @@ protected:
 
 
 
-  boost::optional<RobotPlan> planTrajectory(RobotStateConstPtr start_state,MoveGroupPtr move_group,const geometry_msgs::PoseStamped& pose_st,
+  boost::optional<RobotPlan> planJointTrajectory(RobotStateConstPtr start_state,MoveGroupPtr move_group,const geometry_msgs::PoseStamped& pose_st,
                                                                double z_angle_tolerance = 0.1)
   {
     boost::optional<moveit_msgs::Constraints> goal_constraints = createGoalConstraints(
@@ -890,6 +942,72 @@ protected:
     return plan;
   }
 
+  boost::optional<RobotPlan> planCartesianTrajectory(RobotStatePtr start_state,MoveGroupPtr move_group,
+                                                     const geometry_msgs::PoseStamped& pose_st)
+  {
+    start_state->updateLinkTransforms();
+    Eigen::Affine3d start_tool_pose = start_state->getFrameTransform(move_group->getEndEffectorLink());
+    Eigen::Affine3d final_tool_pose;
+    tf::poseMsgToEigen(pose_st.pose,final_tool_pose);
+
+    auto interpolate = [](const Eigen::Affine3d& p0,const Eigen::Affine3d& pf,
+        int num_poses) -> std::vector<geometry_msgs::Pose>
+    {
+      std::vector<geometry_msgs::Pose> poses;
+      double increment = 1.0/double(num_poses-1);
+      Eigen::Vector3d t0 = p0.translation();
+      Eigen::Vector3d tf = pf.translation();
+      Eigen::Quaterniond q0(p0.rotation());
+      Eigen::Quaterniond qf(pf.rotation());
+
+      Eigen::Vector3d t_new;
+      Eigen::Quaterniond q_new;
+      Eigen::Affine3d p_new;
+      geometry_msgs::Pose pose_msg;
+      for(std::size_t i = 0; i < num_poses; i++)
+      {
+        double t = i*increment;
+        t_new = t0 + (tf - t0) * (t);
+        q_new = q0.slerp(t,qf);
+        p_new = Eigen::Translation3d(t_new) * q_new;
+        tf::poseEigenToMsg(p_new,pose_msg);
+        poses.push_back(pose_msg);
+      }
+      return poses;
+    };
+
+    // planning in tool space
+    RobotPlan plan;
+    plan.planning_time_ = 0.0f;
+    robotStateToRobotStateMsg(*start_state,plan.start_state_);
+    std::vector<geometry_msgs::Pose> waypoints = interpolate(start_tool_pose,final_tool_pose,cartesian_num_points_);
+    move_group->setPoseReferenceFrame(pose_st.header.frame_id);
+    move_group->setStartState(*start_state);
+    double res = move_group->computeCartesianPath(waypoints,cartesian_eef_max_step_, cartesian_jump_threshold_,plan.trajectory_);
+    if(res<0.999)
+    {
+      ROS_ERROR("Cartesian plan only solved %f of the %lu points",100.0 * res,waypoints.size());
+      return boost::none;
+    }
+
+    // computing time stamps
+    robot_trajectory::RobotTrajectory robot_traj(robot_model_,move_group->getName());
+    robot_traj.setRobotTrajectoryMsg(*start_state,plan.trajectory_);
+    trajectory_processing::IterativeParabolicTimeParameterization tp;
+    if(!tp.computeTimeStamps(robot_traj,cartesian_dynamics_scaling_,cartesian_dynamics_scaling_))
+    {
+      ROS_ERROR("Cartesian trajectory time parameterization failed");
+      return boost::none;
+    }
+    plan.trajectory_ = moveit_msgs::RobotTrajectory();
+    robot_traj.getRobotTrajectoryMsg(plan.trajectory_);
+
+    curateTrajectory(plan.trajectory_.joint_trajectory);
+    //ROS_INFO_STREAM(plan.trajectory_);
+    return plan;
+    //return boost::none;
+  }
+
   boost::optional<moveit_msgs::Constraints> createGoalConstraints(const geometry_msgs::PoseStamped& pose_st,std::string group_name,
                                                                   double z_angle_tolerance = 0.1)
   {
@@ -901,8 +1019,8 @@ protected:
     }
 
     MoveGroupPtr move_group = move_groups_map_[group_name];
-    constraints = kinematic_constraints::constructGoalConstraints(move_group->getEndEffectorLink(),pose_st,{0.01,0.01,0.01},
-                                                                  {0.01,0.01,z_angle_tolerance});
+    constraints = kinematic_constraints::constructGoalConstraints(move_group->getEndEffectorLink(),pose_st,{0.005,0.005,0.005},
+                                                                  {0.1,0.1,z_angle_tolerance});
 
     return boost::optional<moveit_msgs::Constraints>(constraints);
   }
@@ -961,14 +1079,20 @@ protected:
   ros::Timer monitor_attached_timer_;
 
   std::map<std::string,MoveGroupPtr> move_groups_map_;
-  RobotControlInfo robot_rail_info_;
-  RobotControlInfo robot_arm_info_;
   moveit::core::RobotModelConstPtr robot_model_;
   robot_model_loader::RobotModelLoaderPtr robot_model_loader_;
+
+  // ros parameters
+  RobotControlInfo robot_rail_info_;
+  RobotControlInfo robot_arm_info_;
   double prefered_pick_angle_;
+  int cartesian_num_points_;
+  double cartesian_eef_max_step_;
+  double cartesian_jump_threshold_; // max change in the configuration space
+  double cartesian_dynamics_scaling_; // used for time parameterization
 
   std::list<gilbreth_msgs::TargetToolPoses> targets_queue_;
-  std::list<RobotTasks> robot_tasks_queue_;
+  //std::list<RobotTasks> robot_tasks_queue_;
   std::atomic<bool> gripper_attached_;
   std::atomic<bool> busy_;
 
