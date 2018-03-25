@@ -17,6 +17,7 @@ from gilbreth_gazebo.srv import VacuumGripperControl
 from controller_manager_msgs.srv import SwitchController
 from moveit_msgs.msg import RobotTrajectory
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 
 ROBOT_TRAJ_TOPIC='gilbreth/robot_trajectories'
 TOOL_POSE_TOPIC='gilbreth/target_tool_poses'
@@ -28,6 +29,7 @@ ARM_CONTROLLER = ['robot_controller']
 RAIL_GROUP_NAME = 'robot_rail'
 RAIL_CONTROLLER = ['robot_rail_controller']
 MOVEIT_PLANNING_SERVICE = 'plan_kinematic_path'
+GRIPPER_LINK='robot_wrist_3_link'
 
 def waitForMoveGroup(wait_time = 10.0):
   ready = False
@@ -56,9 +58,9 @@ class RobotExecution:
         self.scene = moveit_commander.PlanningSceneInterface()        
         self.arm_group = self.robot.get_group(ARM_GROUP_NAME)
         self.rail_group = self.robot.get_group(RAIL_GROUP_NAME)
-        self.arm_group.set_planning_time(1.0)
-        self.rail_group.set_planning_time(1.0)
-        self.max_planning_count = 5
+        self.arm_group.set_planning_time(0.5)
+        self.rail_group.set_planning_time(0.5)
+        self.max_planning_count = 10
 
         self.tool_sub = rospy.Subscriber(TOOL_POSE_TOPIC,TargetToolPoses,self.tool_poses_callback)
         self.gripper_sub = rospy.Subscriber(GRIPPER_STATE_TOPIC, VacuumGripperState, self.gripper_callback)
@@ -134,12 +136,11 @@ class RobotExecution:
 
     def goto_waiting_pose(self):
         rospy.loginfo("======Go to Home Pose======")
-        waiting_plan = self.compute_trajectory(self.rail_group,self.waiting_pose)
+        waiting_plan = self.compute_trajectory(self.rail_group,self.waiting_pose,5.0)
         if not waiting_plan:
             rospy.logerr("Motion Plan Failed time: Current Pose ==> Home Pose.")
         else:
             waiting_plan=curateTrajectory(waiting_plan)
-            #rospy.loginfo("Motion Plan Success: Current Pose ==> Waiting Pose.")
             if not self.switch_controller(RAIL_CONTROLLER,ARM_CONTROLLER,1):
                 rospy.logerr("Switch controller failed.")
             else:
@@ -152,7 +153,6 @@ class RobotExecution:
     def get_available_obj(self):
         for i in range(len(self.tool_poses_list)):
             if self.tool_poses_list[0].pick_approach.header.stamp - rospy.Duration(3.0)> rospy.Time.now():
-                #rospy.loginfo("Availble object in the list. Proceeding...")
                 self.EXECUTE = True                
                 return True
             else:
@@ -160,23 +160,27 @@ class RobotExecution:
                 self.tool_poses_list.pop(0)
         return False
     
-    def compute_trajectory(self, group, target_pose):
+    def compute_trajectory(self, group, target_pose, upper_limit):
         traj= RobotTrajectory()
         group.set_start_state_to_current_state()
         group.set_pose_target(target_pose)
         for i in range(self.max_planning_count):
             plan = group.plan()
             if len(plan.joint_trajectory.points)>0:
-                rospy.loginfo("Successfully computed trajectory.")
-                return plan
+                if plan.joint_trajectory.points[-1].time_from_start.to_sec() <= upper_limit:
+                    rospy.loginfo("Successfully computed trajectory.")
+                    return plan
+                else:
+                    rospy.logwarn("Trajectory is too long.")
+                    upper_limit = upper_limit + 0.5
             else:
                 rospy.logerr("Failed to compute trajectory %d time. Recalculating", i)
         rospy.logerr("Failed to campute trajectory.")
         return False
 
-    def motion_plan(self,start_group,target_pose,start_ctrl,stop_ctrl):
+    def motion_plan(self,start_group,target_pose,start_ctrl,stop_ctrl,upper_limit):
         start_time = time.time()
-        traj = self.compute_trajectory(start_group,target_pose)
+        traj = self.compute_trajectory(start_group,target_pose,upper_limit)
         rospy.loginfo("Run time is %f seconds",(time.time()-start_time))
         if traj:
             if self.switch_controller(start_ctrl,stop_ctrl,1):
@@ -196,8 +200,16 @@ class RobotExecution:
             except:
                 rospy.loginfo("Failed to execute.")
                 self.EXECUTE = False
-        print self.EXECUTE
         return self.EXECUTE
+
+    def attach_box(self):
+        print "attaching box--------------------\n"
+        rospy.sleep(0.1)
+        p = PoseStamped()
+        p.header.frame_id = self.robot.get_planning_frame()
+        p=self.rail_group.get_current_pose()
+
+        self.scene.attach_box(link=GRIPPER_LINK,pose=p,name ='object',size=(0.3,0.3,0.05))     
             
     def execute_robot(self):
 
@@ -211,6 +223,7 @@ class RobotExecution:
         def __exit__(self, exc_type, exc_value, traceback):
           self.tool_pose = None
           self.obj_.EXECUTE = False
+          self.obj_.scene.remove_attached_object(GRIPPER_LINK)
           self.obj_.get_available_obj()
           return True
 
@@ -218,11 +231,11 @@ class RobotExecution:
         if self.EXECUTE:
             target_tool_pose = copy.deepcopy(self.tool_poses_list[0])
             rospy.loginfo("======Go to pick approach pose======")
-            app_traj = self.motion_plan(self.rail_group,target_tool_pose.pick_approach.pose,RAIL_CONTROLLER,ARM_CONTROLLER)
+            app_traj = self.motion_plan(self.rail_group,target_tool_pose.pick_approach.pose,RAIL_CONTROLLER,ARM_CONTROLLER,5.0)
         
             if self.move_robot(self.rail_group,app_traj):
                 rospy.loginfo("======Go to pick pose======")
-                pick_traj = self.motion_plan(self.arm_group,target_tool_pose.pick_pose.pose,ARM_CONTROLLER,RAIL_CONTROLLER)
+                pick_traj = self.motion_plan(self.arm_group,target_tool_pose.pick_pose.pose,ARM_CONTROLLER,RAIL_CONTROLLER,1.0)
             
                 if pick_traj:
                     pick_dur = pick_traj.joint_trajectory.points[-1].time_from_start
@@ -237,22 +250,22 @@ class RobotExecution:
                         rospy.sleep(wait_dur)
 
                         rospy.loginfo("Enable Gripper.")
-                        if self.control_gripper(True) and self.arm_group.execute(pick_traj):
+                        if self.arm_group.execute(pick_traj) and self.control_gripper(True):
                             rospy.loginfo("======Check object attachment======")
                             if self.gripper_attached(pick_deadline): 
-                                #rospy.sleep(0.5)                  
+                                #self.attach_box()                  
                                 rospy.loginfo("======Go to retreat pose======")
-                                retreat_traj = self.motion_plan(self.arm_group,target_tool_pose.pick_retreat.pose,ARM_CONTROLLER,RAIL_CONTROLLER)
+                                retreat_traj = self.motion_plan(self.arm_group,target_tool_pose.pick_retreat.pose,ARM_CONTROLLER,RAIL_CONTROLLER,2.0)
 
                                 if self.move_robot(self.arm_group,retreat_traj):
                                     rospy.loginfo("======Go to place pose======")   
-                                    place_traj = self.motion_plan(self.rail_group,target_tool_pose.place_pose.pose,RAIL_CONTROLLER,ARM_CONTROLLER)
+                                    place_traj = self.motion_plan(self.rail_group,target_tool_pose.place_pose.pose,RAIL_CONTROLLER,ARM_CONTROLLER,5.0)
 
                                     if self.move_robot(self.rail_group,place_traj):
                                         rospy.loginfo("Disable Gripper")
                                         if self.control_gripper(False):
                                             rospy.loginfo("======Successsfully placed object======")
- 
+            #self.scene.remove_attached_object(GRIPPER_LINK)
             self.tool_poses_list.pop(0)
             self.control_gripper(False)
             self.EXECUTE = False

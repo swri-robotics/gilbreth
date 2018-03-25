@@ -17,7 +17,7 @@ robot_rail_controller:
       robot_elbow_joint: {trajectory: 0.1, goal: 0.1}
       robot_wrist_1_joint: {trajectory: 0.1, goal: 0.1}
       robot_wrist_2_joint: {trajectory: 0.1, goal: 0.1}
-      robot_wrist_3_joint: {trajectory: 0.1, goal: 0.1}
+      robot_wrist_3_joint: {trajectory: 0.15, goal: 0.15}
   gains:
       linear_arm_actuator_joint: {p: 10000, d: 500, i: 0, i_clamp: 1}
       robot_shoulder_pan_joint: {p: 10000, d: 150, i: 0, i_clamp: 1}
