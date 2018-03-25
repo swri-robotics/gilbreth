@@ -44,11 +44,3 @@ catkin_package(
 ###########
 
 include_directories(${catkin_INCLUDE_DIRS})
-
-# Create URDF creator library
-add_executable(robot_trajectory_executor
-  src/robot_trajectory_executor.cpp
-)
-target_link_libraries(robot_trajectory_executor
-  ${catkin_LIBRARIES}
-)
