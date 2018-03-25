@@ -17,6 +17,12 @@
   <depend>moveit_commander</depend>
   <depend>moveit_msgs</depend>
   <depend>tf</depend>
+  <depend>gilbreth_msgs</depend>
+  <depend>gilbreth_gazebo</depend>
+  <depend>controller_manager_msgs</depend>
+  <depend>moveit_core</depend>
+  <depend>moveit_ros_planning_interface</depend>
+  <depend>roscpp</depend>
 
 
   <export>

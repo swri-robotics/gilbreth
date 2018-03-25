@@ -2,17 +2,18 @@
 <launch>
 
   <!-- general arguments -->
-  <arg name="spawn_window" default="True"/>
+  <arg name="spawn_window" default="True"/>  
+  <arg name="xterm_cmd" default="xterm -e"/>
 
   <!-- Default argments -->
   <arg name="gnome_term_cmd" value="gnome-terminal --command"/>
-  <arg name="xterm_cmd" value="xterm -e"/>
   <arg name="terminal_cmd" value="$(arg xterm_cmd)" if="$(arg spawn_window)"/>
   <arg name="terminal_cmd" value="" unless="$(arg spawn_window)"/>
 
   <!-- Robot Trajectory Execution -->
-  <node name="robot_execution" type="robot_execution.py" pkg="gilbreth_grasp_planning" launch-prefix="$(arg terminal_cmd)" output="screen"/>
-
+  <node name="robot_execution" type="robot_execution.py" pkg="gilbreth_grasp_planning" 
+  launch-prefix="$(arg terminal_cmd)" output="screen"/> 
+  
   <!-- Uncomment to see trajectory execution aborted caused by goal tolerence violation>
   <node name="robot_execution" type="robot_execution_goal_abortion.py" pkg="gilbreth_grasp_planning" launch-prefix="$(arg terminal_cmd)" output="screen"/-->
 
