@@ -34,15 +34,23 @@
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
+#include <XmlRpcException.h>
+#include <boost/format.hpp>
 
 typedef pcl::PointXYZ PointType;
 typedef pcl::Normal NormalType;
+using ModelRecognizer = pcl::Hough3DGrouping<PointType, PointType, pcl::ReferenceFrame, pcl::ReferenceFrame>;
+using ModelRecognizerPtr = std::shared_ptr<ModelRecognizer>;
+
 class RecognitionClass {
 public:
-  explicit RecognitionClass(ros::NodeHandle &nh) {
+  explicit RecognitionClass(ros::NodeHandle &nh):
+    nh_(nh)
+  {
     // initializing parameters
     descr_dis_thrd = 0.25;
-    descr_rad = 0.02;
+    descr_rad_cg = 0.02;
+    descr_rad_icp = 0.02;
     down_sample = 0.01;
     min_sample_distance = 0.025;
     max_correspondence_distance = 0.01 * 0.01;
@@ -55,85 +63,123 @@ public:
     key_point_sampling = 0.006;
     k_nearest_neighbors= 10;
     iterations=10;
-
-    pub_tf = nh.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
-    loadParameter();
-    loadModel();
   }
-  void loadParameter() {
+
+  bool run()
+  {
+
+    if(!loadParameter() || !loadModel())
+    {
+      return false;
+    }
+
+    cloud_subs_= nh_.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 1, &RecognitionClass::cloudCallBack, this);
+    pub_tf = nh_.advertise<gilbreth_msgs::ObjectDetection>("recognition_result_world", 10);
+
+    return true;
+  }
+
+  bool loadParameter() {
+
     // General parameters
-    std::map<std::string, float> parameter_map;
-    std::map<std::string, bool> switch_map;
-    ros::NodeHandle ph("~");
-    ph.getParam("parameters", parameter_map);
-    ph.getParam("switches", switch_map);
-    descr_rad = parameter_map["descr_rad"];
-    down_sample = parameter_map["down_sample"];
-    min_sample_distance = parameter_map["min_sample_distance"];
-    max_correspondence_distance = parameter_map["max_correspondence_distance"];
-    nr_iterations = parameter_map["nr_iterations"];
-    cg_size = parameter_map["cg_size"];
-    cg_thresh = parameter_map["cg_thresh"];
-    icp = switch_map["ICP"];
-    print_detailed_info = switch_map["print_detailed_info"];
-    descr_dis_thrd = parameter_map["descr_dis_thrd"];
-    key_point_sampling = parameter_map["key_point_sampling"];
-    k_nearest_neighbors = parameter_map["k_nearest_neighbors"];
-    iterations=parameter_map["iteration"];
+    try
+    {
+      XmlRpc::XmlRpcValue parameter_map;
+      XmlRpc::XmlRpcValue switch_map;
+      ros::NodeHandle ph("~");
+      ph.getParam("recognition", parameter_map);
+      ph.getParam("recognition/switches", switch_map);
+      descr_rad_cg = static_cast<double>(parameter_map["descr_rad_cg"]);
+      descr_rad_icp = static_cast<double>(parameter_map["descr_rad_icp"]);
+      down_sample = static_cast<double>(parameter_map["down_sample"]);
+      min_sample_distance = static_cast<double>(parameter_map["min_sample_distance"]);
+      max_correspondence_distance = static_cast<double>(parameter_map["max_correspondence_distance"]);
+      nr_iterations = static_cast<int>(parameter_map["nr_iterations"]);
+      cg_size = static_cast<double>(parameter_map["cg_size"]);
+      cg_thresh = static_cast<double>(parameter_map["cg_thresh"]);
+      icp = static_cast<bool>(switch_map["ICP"]);
+      print_detailed_info = static_cast<bool>(switch_map["print_detailed_info"]);
+      descr_dis_thrd = static_cast<double>(parameter_map["descr_dis_thrd"]);
+      key_point_sampling = static_cast<double>(parameter_map["key_point_sampling"]);
+      k_nearest_neighbors = static_cast<int>(parameter_map["k_nearest_neighbors"]);
+      iterations=static_cast<int>(parameter_map["iteration"]);
+    }
+    catch(XmlRpc::XmlRpcException& e)
+    {
+      ROS_ERROR("Recognition failed to load algorithm parameters: %s",e.getMessage().c_str());
+      return false;
+    }
+    return true;
   }
 
-  void loadModel() {
-    // Load model settings
-    XmlRpc::XmlRpcValue model_map;
-    std::string package_path;
-    ros::NodeHandle ph("~");
-    ph.getParam("part_list", model_map);
-    ph.getParam("package_path", package_path);
+  bool loadModel()
+  {
+    try
+    {
+      // Load model settings
+      XmlRpc::XmlRpcValue model_map;
+      std::string package_path;
+      ros::NodeHandle ph("~");
+      ph.getParam("part_list", model_map);
+      ph.getParam("package_path", package_path);
 
-    ROS_INFO("Loading Point Cloud Models");
-    std::vector<pcl::PointCloud<PointType>::Ptr> model_raw_list;
-    for (int i = 0; i < model_map.size(); i++) {
-      pcl::PointCloud<PointType>::Ptr model_raw(new pcl::PointCloud<PointType>());
-      std::string model_path = model_map[i]["path"];
-      if (pcl::io::loadPCDFile(package_path + model_path, *model_raw) < 0) 
+      ROS_INFO("Loading Point Cloud Models");
+      std::vector<pcl::PointCloud<PointType>::Ptr> model_raw_list;
+      for (int i = 0; i < model_map.size(); i++) {
+        pcl::PointCloud<PointType>::Ptr model_raw(new pcl::PointCloud<PointType>());
+        std::string model_path = model_map[i]["path"];
+        if (pcl::io::loadPCDFile(package_path + model_path, *model_raw) < 0)
+        {
+          ROS_ERROR("Recognition encountered Error loading model cloud.");
+          return false;
+        }
+        model_raw_list.push_back(model_raw);
+        model_names_.push_back(model_map[i]["name"]);
+        std::vector<double> pick_pose_sub;
+        double pick_pose_sub_element;
+        for (int j = 0; j < model_map[i]["pick_pose"].size(); j++) {
+          pick_pose_sub_element = model_map[i]["pick_pose"][j];
+          pick_pose_sub.push_back(pick_pose_sub_element);
+        }
+        pick_pose.push_back(pick_pose_sub);
+      }
+
+      // Downsample models
+      ROS_INFO("Preparing Point Cloud Models");
+      pcl::VoxelGrid<pcl::PointXYZ> sor;
+      for (int i = 0; i < model_raw_list.size(); i++)
       {
-        ROS_ERROR("Error loading model cloud.");
-        return;
+        pcl::PointCloud<PointType>::Ptr model(new pcl::PointCloud<PointType>());
+        if (down_sample > 0)
+        {
+          sor.setInputCloud(model_raw_list[i]);
+          sor.setLeafSize(down_sample, down_sample, down_sample);
+          sor.filter(*model);
+        }
+        else
+        {
+          model = model_raw_list[i];
+        }
+        model_list.push_back(model);
       }
-      model_raw_list.push_back(model_raw);
-      model_name.push_back(model_map[i]["name"]);
-      std::vector<double> pick_pose_sub;
-      double pick_pose_sub_element;
-      for (int j = 0; j < model_map[i]["pick_pose"].size(); j++) {
-        pick_pose_sub_element = model_map[i]["pick_pose"][j];
-        pick_pose_sub.push_back(pick_pose_sub_element);
+
+      // if use ICP
+      ROS_INFO("Loading Recognition Method Parameters");
+      if (icp) {
+        loadICPConfig();
       }
-      pick_pose.push_back(pick_pose_sub);
+      // if use correspondence grouping
+      else {
+        loadCGConfig();
+      }
+    }
+    catch(XmlRpc::XmlRpcException& e)
+    {
+      ROS_ERROR("Recognition failed to load model parameters: %s",e.getMessage().c_str());
+      return false;
     }
 
-    // Downsample models
-    ROS_INFO("Preparing Point Cloud Models");
-    pcl::VoxelGrid<pcl::PointXYZ> sor;
-    for (int i = 0; i < model_raw_list.size(); i++) {
-      pcl::PointCloud<PointType>::Ptr model(new pcl::PointCloud<PointType>());
-      if (down_sample > 0) {
-        sor.setInputCloud(model_raw_list[i]);
-        sor.setLeafSize(down_sample, down_sample, down_sample);
-        sor.filter(*model);
-      } else
-        model = model_raw_list[i];
-      model_list.push_back(model);
-    }
-
-    // if use ICP
-    ROS_INFO("Loading Recognition Method Parameters");
-    if (icp) {
-      loadICPConfig();
-    }
-    // if use correspondence grouping
-    else {
-      loadCGConfig();
-    }
+    return true;
   }
 
   void loadICPConfig() {
@@ -143,7 +189,7 @@ public:
 
     for (int i = 0; i < model_list.size(); i++) {
       pcl::PointCloud<NormalType>::Ptr model_normals(new pcl::PointCloud<NormalType>());
-      norm_est.setRadiusSearch(descr_rad);
+      norm_est.setRadiusSearch(descr_rad_icp);
       norm_est.setSearchMethod(tree);
       norm_est.setInputCloud(model_list[i]);
       norm_est.compute(*model_normals);
@@ -153,7 +199,7 @@ public:
     for (int i = 0; i < model_list.size(); i++) {
       pcl::PointCloud<pcl::FPFHSignature33>::Ptr model_features(new pcl::PointCloud<pcl::FPFHSignature33>);
       fpfh_est.setSearchMethod(tree);
-      fpfh_est.setRadiusSearch(descr_rad);
+      fpfh_est.setRadiusSearch(descr_rad_icp);
       fpfh_est.setInputCloud(model_list[i]);
       fpfh_est.setInputNormals(model_normals_list[i]);
       fpfh_est.compute(*model_features);
@@ -189,7 +235,7 @@ public:
 
     //Compute Descriptor for Keypoints
     pcl::SHOTEstimationOMP<PointType, NormalType, pcl::SHOT352> descr_est;
-    descr_est.setRadiusSearch(descr_rad);
+    descr_est.setRadiusSearch(descr_rad_cg);
     pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, pcl::ReferenceFrame> rf_est;
 
     for (int i = 0; i < model_list.size(); i++) {
@@ -202,12 +248,37 @@ public:
 
       pcl::PointCloud<pcl::ReferenceFrame>::Ptr model_rf(new pcl::PointCloud<pcl::ReferenceFrame>());
       rf_est.setFindHoles(true);
-      rf_est.setRadiusSearch(descr_rad);
+      rf_est.setRadiusSearch(descr_rad_cg);
       rf_est.setInputCloud(model_keypoints_list[i]);
       rf_est.setInputNormals(model_normals_list[i]);
       rf_est.setSearchSurface(model_list[i]);
       rf_est.compute(*model_rf);
       model_rf_list.push_back(model_rf);
+    }
+
+    // Creating and training Hough3D Grouping objects
+
+    for(std::size_t i = 0; i < model_list.size() ; i++)
+    {
+      ModelRecognizerPtr model_recg(new ModelRecognizer());
+      model_recg->setHoughBinSize(cg_size);
+      model_recg->setHoughThreshold(cg_thresh);
+      model_recg->setUseInterpolation(true);
+      model_recg->setUseDistanceWeight(false);
+      model_recg->setInputCloud(model_keypoints_list[i]);
+      model_recg->setInputRf(model_rf_list[i]);
+
+      if(model_recg->train())
+      {
+        ROS_INFO_STREAM(boost::str(boost::format("Hough3D algorithm successfully trained for model %1%") % model_names_[i]));
+      }
+      else
+      {
+        ROS_ERROR_STREAM(boost::str(boost::format("Hough3D algorithm failed training for model %1%") % model_names_[i]));
+      }
+
+      model_recognizers_.push_back(model_recg);
+
     }
   }
 
@@ -240,7 +311,7 @@ public:
       ROS_INFO_STREAM("Using ICP");
       pcl::FPFHEstimation<pcl::PointXYZ, pcl::Normal, pcl::FPFHSignature33> fpfh_est;
       fpfh_est.setSearchMethod(tree);
-      fpfh_est.setRadiusSearch(descr_rad);
+      fpfh_est.setRadiusSearch(descr_rad_icp);
       fpfh_est.setInputCloud(scene);
       fpfh_est.setInputNormals(scene_normals);
       fpfh_est.compute(*scene_features);
@@ -259,20 +330,22 @@ public:
       sac_ia_.setInputTarget(scene);
       sac_ia_.setTargetFeatures(scene_features);
       results_temp.resize(model_list.size());
-      float best_score = 1;
-      for (int j = 0; j < model_list.size(); j++) {
+      float best_score = std::numeric_limits<float>::infinity();
+      for (int j = 0; j < model_list.size(); j++)
+      {
         sac_ia_.setInputSource(model_list[j]);
         sac_ia_.setSourceFeatures(model_features_list[j]);
         pcl::PointCloud<pcl::PointXYZ> registration_output;
         sac_ia_.align(registration_output);
-        results_temp[j].item_name = model_name[j];
+        results_temp[j].item_name = model_names_[j];
         results_temp[j].item_id = j;
         results_temp[j].fitness_score = (float)sac_ia_.getFitnessScore(max_correspondence_distance);
         results_temp[j].final_transformation = sac_ia_.getFinalTransformation();
-        if (print_detailed_info) {
-          ROS_INFO_STREAM("model " << j << " FitnessScore " << results_temp[j].fitness_score);
-        }
-        if (results_temp[j].fitness_score < best_score) {
+
+        ROS_INFO_STREAM_COND(print_detailed_info,"model (" << j << ") " << model_names_[j] <<
+                             " fitnessScore " << results_temp[j].fitness_score);
+        if (results_temp[j].fitness_score < best_score)
+        {
           min_index = j;
           best_score = results_temp[j].fitness_score;
         }
@@ -282,6 +355,7 @@ public:
 
     else {
       ROS_INFO_STREAM("Using Correspondence Grouping");
+
       // Extract Scene Keypoint
       pcl::UniformSampling<PointType> uniform_sampling;
       pcl::PointCloud<PointType>::Ptr scene_keypoints(new pcl::PointCloud<PointType>());
@@ -290,32 +364,35 @@ public:
       pcl::PointCloud<int> keypointIndices1;
       uniform_sampling.compute(keypointIndices1);
       pcl::copyPointCloud(*scene, keypointIndices1.points, *scene_keypoints);
+
       //Compute Descriptor
       pcl::SHOTEstimationOMP<PointType, NormalType, pcl::SHOT352> descr_est;
-      descr_est.setRadiusSearch(descr_rad);
+      descr_est.setRadiusSearch(descr_rad_cg);
       pcl::PointCloud<pcl::SHOT352>::Ptr scene_descriptors(new pcl::PointCloud<pcl::SHOT352>());
       descr_est.setInputCloud(scene_keypoints);
       descr_est.setInputNormals(scene_normals);
       descr_est.setSearchSurface(scene);
       descr_est.compute(*scene_descriptors);
+
       //Compute rf
       pcl::PointCloud<pcl::ReferenceFrame>::Ptr scene_rf(new pcl::PointCloud<pcl::ReferenceFrame>());
       pcl::BOARDLocalReferenceFrameEstimation<PointType, NormalType, pcl::ReferenceFrame> rf_est;
       rf_est.setFindHoles(true);
-      rf_est.setRadiusSearch(descr_rad);
+      rf_est.setRadiusSearch(descr_rad_cg);
       rf_est.setInputCloud(scene_keypoints);
       rf_est.setInputNormals(scene_normals);
       rf_est.setSearchSurface(scene);
       rf_est.compute(*scene_rf);
 
       //  Find Model-Scene Correspondences with KdTree
-
-      for (int j = 0; j < model_list.size(); j++) {
+      for (int j = 0; j < model_list.size(); j++)
+      {
         pcl::KdTreeFLANN<pcl::SHOT352> match_search;
         pcl::CorrespondencesPtr model_scene_corrs(new pcl::Correspondences());
         match_search.setInputCloud(model_descriptor_list[j]);
 
-        //  For each scene keypoint descriptor, find nearest neighbor into the model keypoints descriptor cloud and add it to the correspondences vector.
+        // For each scene keypoint descriptor, find nearest neighbor into the model keypoints
+        // descriptor cloud and add it to the correspondences vector.
         for (size_t i = 0; i < scene_descriptors->size(); ++i) {
           std::vector<int> neigh_indices(1);
           std::vector<float> neigh_sqr_dists(1);
@@ -323,61 +400,81 @@ public:
           {
             continue;
           }
+
           int found_neighs = match_search.nearestKSearch(scene_descriptors->at(i), 1, neigh_indices, neigh_sqr_dists);
-          if (found_neighs == 1 && neigh_sqr_dists[0] < descr_dis_thrd) //  add match only if the squared descriptor distance is less than 0.25 (SHOT descriptor distances are between 0 and 1 by design)
+          for(size_t i = 0 ; i < found_neighs ; i++)
           {
-            pcl::Correspondence corr(neigh_indices[0], static_cast<int>(i), neigh_sqr_dists[0]);
+            if(neigh_sqr_dists[i] > descr_dis_thrd)
+            {
+              continue;
+            }
+            pcl::Correspondence corr(neigh_indices[i], static_cast<int>(i), neigh_sqr_dists[i]);
             model_scene_corrs->push_back(corr);
           }
         }
-        if (print_detailed_info) {
-          ROS_INFO_STREAM("Model " << j << " "
-                    << "Correspondence ORG number: " << model_scene_corrs->size());
+
+        if(model_scene_corrs->empty())
+        {
+          ROS_WARN_STREAM_COND(print_detailed_info,
+                               boost::str(boost::format("Model (%1%) %2% contains no scene correspondences") % j % model_names_[j] ));
+          continue;
         }
-        // clustering
+
+        ROS_INFO_STREAM_COND(print_detailed_info && !model_scene_corrs->empty(),
+                             "Model (" <<j<<") "<< model_names_[j] <<" has " << model_scene_corrs->size()<<" correspondences");
+
+        // running pre-trained hough3d recognition
         std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
         std::vector<pcl::Correspondences> clustered_corrs;
-        pcl::Hough3DGrouping<PointType, PointType, pcl::ReferenceFrame, pcl::ReferenceFrame> clusterer;
-        clusterer.setHoughBinSize(cg_size);
-        clusterer.setHoughThreshold(cg_thresh);
-        clusterer.setUseInterpolation(true);
-        clusterer.setUseDistanceWeight(false);
-        clusterer.setInputCloud(model_keypoints_list[j]);
-        clusterer.setInputRf(model_rf_list[j]);
-        clusterer.setSceneCloud(scene_keypoints);
-        clusterer.setSceneRf(scene_rf);
-        clusterer.setModelSceneCorrespondences(model_scene_corrs);
-        clusterer.recognize(rototranslations, clustered_corrs);
-        if (clustered_corrs.size() > 0) {
-          if ((int)clustered_corrs[0].size() > min_index) {
-            min_index = clustered_corrs[0].size();
-            result.item_name = model_name[j];
+
+        ModelRecognizerPtr model_recognizer = model_recognizers_[j];
+        model_recognizer->setSceneCloud(scene_keypoints);
+        model_recognizer->setSceneRf(scene_rf);
+        model_recognizer->setModelSceneCorrespondences(model_scene_corrs);
+        model_recognizer->recognize(rototranslations, clustered_corrs);
+
+        if (clustered_corrs.size() > 0)
+        {
+          // computing total correspondences
+          int total_corr = std::accumulate(clustered_corrs.begin(),clustered_corrs.end(), 0 ,[](int c,const pcl::Correspondences& v)
+           {
+             return c + v.size();
+           });
+
+          if (total_corr > min_index)
+          {
+            min_index = total_corr;
+            result.item_name = model_names_[j];
             result.item_id = j;
             result.final_transformation = rototranslations[0];
           }
-          if (print_detailed_info) {
-            ROS_INFO_STREAM("Model " << j << " "<< "Correspondence number: " << clustered_corrs[0].size());
-          }
+
+          ROS_INFO_STREAM_COND(print_detailed_info,
+                               "Model (" << j <<") "<< model_names_[j] <<" contains " << total_corr <<" recognized correspondences");
+
         }
-        else {
-          if (print_detailed_info) {
-            ROS_INFO_STREAM("Model " << j << " "<< "Correspondence number: 0");
-          }
-        }
+
       }
     }
 
+    duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+    ROS_INFO_STREAM("runtime is " << duration << " seconds.");
+
     if (min_index == -1) {
-      ROS_INFO_STREAM("-----------------------------");
-      ROS_INFO_STREAM("No model matching");
-      ROS_INFO_STREAM("-----------------------------");
+      ROS_ERROR_STREAM("-----------------------------");
+      ROS_ERROR_STREAM("Recognition Failed, elapsed time: "<<duration<<" seconds");
+      ROS_ERROR_STREAM("-----------------------------");
     }
-    else {
+    else
+    {
+
       ROS_INFO_STREAM("-----------------------------");
-      ROS_INFO_STREAM("Item_Name: " << result.item_name);
+      ROS_INFO_STREAM("Recognition found object: " << result.item_name<<" in "<<duration<<" seconds");
       ROS_INFO_STREAM("-----------------------------");
+
       pcl::PointCloud<PointType>::Ptr rotated_model(new pcl::PointCloud<PointType>());
       pcl::transformPointCloud(*model_list[result.item_id], *rotated_model, result.final_transformation);
+
       // Transform pick up point from model to scene
       pcl::PointCloud<PointType>::Ptr pick_point_cloud(new pcl::PointCloud<PointType>());
       pcl::PointCloud<PointType>::Ptr rotated_pick_point_cloud(new pcl::PointCloud<PointType>());
@@ -387,6 +484,7 @@ public:
       pick_point.z = pick_pose[result.item_id][2];
       pick_point_cloud->push_back(pick_point);
       pcl::transformPointCloud(*pick_point_cloud, *rotated_pick_point_cloud, result.final_transformation);
+
       // Use ICP to fine align model to scene
       t_start = std::clock();
       pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
@@ -395,14 +493,17 @@ public:
       icp.setInputTarget(scene);
       pcl::PointCloud<pcl::PointXYZ> final;
       icp.align(final);
-      if (print_detailed_info){
-    	duration = (std::clock() - t_start) / (double)CLOCKS_PER_SEC;
-    	ROS_INFO_STREAM("align time is " << duration << " seconds.");
-        ROS_INFO_STREAM("has converged:" << icp.hasConverged() << " score: " <<icp.getFitnessScore());
-      }
+
+      duration = (std::clock() - t_start) / (double)CLOCKS_PER_SEC;
+      ROS_INFO_STREAM_COND(print_detailed_info && icp.hasConverged(),"ICP refinement converged , with score: " <<icp.getFitnessScore()<<" in "<<
+                           duration<<" seconds");
+
+      ROS_ERROR_STREAM_COND(!icp.hasConverged(),"ICP refinement failed, using un-converged pose");
+
       Eigen::Matrix4f icp_transformation = icp.getFinalTransformation();
       pcl::transformPointCloud(*rotated_model, *rotated_model, icp_transformation);
       pcl::transformPointCloud(*rotated_pick_point_cloud, *rotated_pick_point_cloud, icp_transformation);
+
       // Generate output message
       gilbreth_msgs::ObjectDetection data;
       gilbreth_msgs::ObjectDetection data_tf;
@@ -420,11 +521,12 @@ public:
       data.pose.orientation.y = q.getY();
       data.pose.orientation.z = q.getZ();
       data.pose.orientation.w = q.getW();
+
       // Transform point to world coordination
       sensor_point.point.x = data.pose.position.x;
       sensor_point.point.y = data.pose.position.y;
       sensor_point.point.z = data.pose.position.z;
-      sensor_point.header.frame_id = "depth_camera_camera_link_optical";
+      sensor_point.header.frame_id = cloud_msg->header.frame_id;
       listener.transformPoint("world", sensor_point, world_point);
 
       data_tf.name = data.name;
@@ -440,8 +542,7 @@ public:
       data_tf.header.frame_id = "world";
       pub_tf.publish(data_tf);
     }
-    duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    ROS_INFO_STREAM("runtime is " << duration << " seconds.");
+
   }
 
 private:
@@ -452,18 +553,26 @@ private:
     Eigen::Matrix4f final_transformation;
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
+
+  ros::NodeHandle nh_;
   ros::Publisher pub_tf;
+  ros::Subscriber cloud_subs_;
+
+  // recognition data structures
   std::vector<std::vector<double> > pick_pose;
-  std::vector<std::string> model_name;
+  std::vector<std::string> model_names_;
   std::vector<pcl::PointCloud<PointType>::Ptr> model_list;
   std::vector<pcl::PointCloud<pcl::FPFHSignature33>::Ptr> model_features_list;
   std::vector<pcl::PointCloud<pcl::SHOT352>::Ptr> model_descriptor_list;
   std::vector<pcl::PointCloud<pcl::ReferenceFrame>::Ptr> model_rf_list;
   std::vector<pcl::PointCloud<PointType>::Ptr> model_keypoints_list;
+  std::vector<ModelRecognizerPtr> model_recognizers_;
   tf::TransformListener listener;
+
   // Algorithm params
   float descr_dis_thrd;
-  float descr_rad;
+  float descr_rad_cg;
+  float descr_rad_icp;
   float down_sample;
   float min_sample_distance;
   float max_correspondence_distance;
@@ -479,13 +588,21 @@ private:
 };
 
 int main(int argc, char **argv) {
+
+  // suppressing pcl output
+  pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+
   // Initialize ROS
   ros::init(argc, argv, "recognition_node");
   ros::NodeHandle nh;
-  RecognitionClass recognitionNode(nh);
+  RecognitionClass recognition(nh);
+  if(!recognition.run())
+  {
+    return -1;
+  }
+
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, &RecognitionClass::cloudCallBack, &recognitionNode);
+  //ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, &RecognitionClass::cloudCallBack, &recognition);
   ROS_INFO("Recognition Node Ready ...");
-  // Spin
   ros::spin();
 }
