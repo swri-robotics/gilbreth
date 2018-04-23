@@ -12,6 +12,7 @@ add_message_files(
   ObjectDetection.msg
   TargetToolPoses.msg
   RobotTrajectories.msg
+  ObjectVoxel.msg
 )
 
 

@@ -19,8 +19,8 @@ recognition:
   switches:
     ICP: false # if false, use correspondence grouping algorithm
     print_detailed_info: true
-  
-# Segmentation  
+
+# Segmentation
 segmentation:
   # general
   down_sample: 0.01
@@ -36,4 +36,3 @@ segmentation:
   # other options
   switches:
     print_detailed_info: true
-

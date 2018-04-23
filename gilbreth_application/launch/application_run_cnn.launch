@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- general arguments -->
+  <arg name="spawn_window" default="True"/>
+
+  <!-- Default argments -->
+  <arg name="gnome_term_cmd" value="gnome-terminal --command"/>
+  <arg name="xterm_cmd" value="xterm -e"/>
+  <arg name="terminal_cmd" value="$(arg xterm_cmd)" if="$(arg spawn_window)"/>
+  <arg name="terminal_cmd" value="" unless="$(arg spawn_window)"/>
+
+  <!-- Planning and execution -->
+  <include file="$(find gilbreth_grasp_planning)/launch/grasp_planning.launch">
+    <arg name="spawn_window" value="$(arg spawn_window)"/>
+  </include>
+
+    
+  <!-- Perception -->
+  <include file="$(find gilbreth_perception)/launch/gilbreth_perception_cnn.launch">
+    <arg name="spawn_window" value="$(arg spawn_window)"/>
+  </include>
+
+  <!-- Run -->
+  <node name="run_demo" pkg="gilbreth_application" type="run.sh" output="screen"/>
+
+</launch>
