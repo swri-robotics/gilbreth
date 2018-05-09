@@ -11,7 +11,10 @@
   <arg name="terminal_cmd" value="" unless="$(arg spawn_window)"/>
 
   <!-- Robot Trajectory Execution -->
-  <node name="robot_execution" type="robot_execution.py" pkg="gilbreth_grasp_planning" 
+  <!--<node name="robot_execution" type="robot_execution.py" pkg="gilbreth_grasp_planning" 
+  launch-prefix="$(arg terminal_cmd)" output="screen"/> -->
+
+  <node name="robot_execution" type="robot_trajectory_executor" pkg="gilbreth_grasp_planning" 
   launch-prefix="$(arg terminal_cmd)" output="screen"/> 
   
   <!-- Uncomment to see trajectory execution aborted caused by goal tolerence violation>
