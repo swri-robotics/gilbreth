@@ -350,7 +350,9 @@ protected:
     ros::Time current_time = ros::Time::now();
     if(current_time + traj_duration > pick_time)
     {
-      ROS_ERROR("Robot won't make it in time, dismissing object");
+      double time_available = (pick_time - current_time).toSec();
+      ROS_ERROR("Robot won't make it in time, dismissing object. Pick traj duration: %f > time available: %f",
+                traj_duration.toSec(),time_available);
       return;
     }
 
@@ -776,7 +778,9 @@ protected:
     ros::Time current_time = ros::Time::now();
     if(current_time + traj_duration > pick_time)
     {
-      ROS_ERROR("Robot won't make it in time, dismissing object");
+      double time_available = (pick_time - current_time).toSec();
+      ROS_ERROR("Robot won't make it in time, dismissing object. Pick traj duration: %f > time available: %f",
+                traj_duration.toSec(),time_available);
       return;
     }
 
