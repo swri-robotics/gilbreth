@@ -13,6 +13,7 @@ add_message_files(
   TargetToolPoses.msg
   RobotTrajectories.msg
   ObjectVoxel.msg
+  ObjectType.msg
 )
 
 
@@ -24,6 +25,7 @@ generate_messages(
   geometry_msgs
   trajectory_msgs
   moveit_msgs
+  sensor_msgs
 )
 
 
@@ -31,7 +33,7 @@ generate_messages(
 ## catkin specific configuration ##
 ###################################
 catkin_package(
-  CATKIN_DEPENDS  message_runtime roscpp geometry_msgs std_msgs trajectory_msgs moveit_msgs
+  CATKIN_DEPENDS  message_runtime roscpp geometry_msgs std_msgs trajectory_msgs moveit_msgs sensor_msgs
 )
 
 ###########

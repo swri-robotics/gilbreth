@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from gilbreth_msgs.msg import ObjectVoxel
-from std_msgs.msg import Int8
+from gilbreth_msgs.msg import ObjectType
 import imp
 import time
 import numpy as np
@@ -38,20 +38,25 @@ def make_test_functions(cfg, model):
 
 
 def callback(data):
+    object_type_msg = ObjectType()
     start = time.time()
     for i in range(0, dims[0]):
         for j in range(0, dims[1]):
             for k in range(0, dims[2]):
                 x[0][0][i][j][k] = data.voxel.data[i*dims[1]*dims[2]+k*dims[2]+j]
     pred = np.argmax(np.sum(tfuncs['dout'](x), 0))
+    object_type_msg.type = pred
     end = time.time()
     duration = end-start
     rospy.loginfo("Object Type: %d, CNN prediction time: %f", pred, duration)
-    pub.publish(pred)
+    object_type_msg.header.stamp = rospy.Time.now()
+    object_type_msg.detection_time = data.detection_time
+    object_type_msg.pcd = data.pcd
+    pub.publish(object_type_msg)
 
 
 def recognitioncnn():
-    rospy.init_node('recognition_cnn', anonymous=True)
+    rospy.init_node('recognition_cnn_node', anonymous=True)
     rospy.Subscriber("voxel_data", ObjectVoxel, callback)
     rospy.spin()
 
@@ -64,6 +69,6 @@ if __name__ == '__main__':
     voxnet.checkpoints.load_weights(package_path + '/config/weights.npz', model['l_out'])
     tfuncs, tvars = make_test_functions(cfg, model)
     dims = cfg['dims']
-    pub = rospy.Publisher('object_type', Int8, queue_size=10)
+    pub = rospy.Publisher('object_type', ObjectType, queue_size=10)
     x = np.zeros((1,1,)+dims, dtype=np.float32)
     recognitioncnn()

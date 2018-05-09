@@ -43,6 +43,9 @@ target_link_libraries(kinect_publisher ${catkin_LIBRARIES})
 
 add_executable(alignment_node src/alignment_node.cpp)
 target_link_libraries(alignment_node ${catkin_LIBRARIES})
+
+add_executable(voxelizer_node src/voxelizer_node.cpp)
+target_link_libraries(voxelizer_node ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############

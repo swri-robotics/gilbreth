@@ -1,5 +1,5 @@
 #include "gilbreth_msgs/ObjectDetection.h"
-#include "std_msgs/Int8.h"
+#include "gilbreth_msgs/ObjectType.h"
 #include <cstdio>
 #include <ctime>
 #include <fstream>
@@ -26,12 +26,13 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
 
+static const std::string WORLD_FRAME = "world";
 typedef pcl::PointXYZ PointType;
 typedef pcl::Normal NormalType;
 
-class RecognitionClass {
+class AlignmentClass {
 public:
-  explicit RecognitionClass(ros::NodeHandle &nh) {
+  explicit AlignmentClass(ros::NodeHandle &nh) {
     // initializing parameters
     down_sample = 0.01;
     print_detailed_info = false;
@@ -96,22 +97,14 @@ public:
     }
   }
 
-  void cloudCallBack(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
-
-    std::clock_t start, t_start;
-    double duration;
-    start = std::clock();
-    // Load scene
-    pcl::fromROSMsg(*cloud_msg, *scene);
-  }
-
-  void objectCallBack(const std_msgs::Int8::ConstPtr &object_type) {
+  void objectCallBack(const gilbreth_msgs::ObjectType::ConstPtr &object_type) {
     std::clock_t start;
     double duration;
     Result result;
-    result.item_name = model_name[object_type->data];
-    result.item_id = object_type->data;
-
+    result.item_name = model_name[object_type->type];
+    result.item_id = object_type->type;
+    // Load scene
+    pcl::fromROSMsg(object_type->pcd, *scene);
     // Use ICP to align model to scene
     start = std::clock();
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
@@ -152,7 +145,7 @@ public:
     sensor_point.point.y = data.pose.position.y;
     sensor_point.point.z = data.pose.position.z;
     sensor_point.header.frame_id = "depth_camera_camera_link_optical";
-    listener.transformPoint("world", sensor_point, world_point);
+    listener.transformPoint(WORLD_FRAME, sensor_point, world_point);
 
     data_tf.name = data.name;
     data_tf.pose.position.x = world_point.point.x;
@@ -162,9 +155,9 @@ public:
     data_tf.pose.orientation.y = q.getY();
     data_tf.pose.orientation.z = q.getZ();
     data_tf.pose.orientation.w = q.getW();
-    //data_tf.detection_time = cloud_msg->header.stamp;
+    data_tf.detection_time = object_type->detection_time;
     data_tf.header.stamp = ros::Time::now();
-    data_tf.header.frame_id = "world";
+    data_tf.header.frame_id = WORLD_FRAME;
     pub_tf.publish(data_tf);
 
     duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
@@ -202,13 +195,12 @@ private:
 
 int main(int argc, char **argv) {
   // Initialize ROS
-  ros::init(argc, argv, "recognition_node");
+  ros::init(argc, argv, "alignment_node");
   ros::NodeHandle nh;
-  RecognitionClass recognitionNode(nh);
+  AlignmentClass alignmentNode(nh);
   // Create a ROS subscriber for the input point cloud
-  ros::Subscriber sub_1 = nh.subscribe<sensor_msgs::PointCloud2>("segmentation_result", 100, &RecognitionClass::cloudCallBack, &recognitionNode);
-  ros::Subscriber sub_2 = nh.subscribe<std_msgs::Int8>("object_type", 100, &RecognitionClass::objectCallBack, &recognitionNode);
-  ROS_INFO("Recognition Node Ready ...");
+  ros::Subscriber sub_2 = nh.subscribe<gilbreth_msgs::ObjectType>("object_type", 100, &AlignmentClass::objectCallBack, &alignmentNode);
+  ROS_INFO("Alignment Node Ready ...");
   // Spin
   ros::spin();
 }
