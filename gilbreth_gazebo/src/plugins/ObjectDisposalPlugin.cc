@@ -26,7 +26,7 @@
 static const double ROS_QUEUE_TIMEOUT = 0.1;
 static const std::string DISPOSED_MODELS_TOPIC = "gazebo/disposed_models";
 static const std::string DEFAULT_WORLD_FRAME_ID = "world";
-static const Eigen::Vector3d DISPOSAL_NOMINAL_LOCATION = Eigen::Vector3d(0,0,-10); // meters
+static const Eigen::Vector3d DISPOSAL_NOMINAL_LOCATION = Eigen::Vector3d(-100,100,-10); // meters
 static const double DISPOSAL_Y_INCREMENT = 1.25f;
 
 using namespace gazebo;
@@ -179,7 +179,7 @@ void ObjectDisposalPlugin::ActOnContactingModels()
             dl.y() + DISPOSAL_Y_INCREMENT * (disposed_models_queue_.size() + 1),
             dl.z());
 
-        gzdbg << "[" << this->model->GetName() << "] Teleporting model: " << model->GetName() << "\n";
+        gzdbg << "[" << this->model->GetName() << "] Teleporting model: " << model->GetName() << " to Disposal Location\n";
         model->SetAutoDisable(true);
         model->SetWorldPose(modelDisposalPose);
 

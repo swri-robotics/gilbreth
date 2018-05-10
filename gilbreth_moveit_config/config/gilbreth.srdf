@@ -25,6 +25,23 @@
         <joint name="robot_wrist_2_joint" value="1.57" />
         <joint name="robot_wrist_3_joint" value="0" />
     </group_state>
+    <group_state name="ARM_WAIT" group="robot">
+        <joint name="robot_elbow_joint" value="1.8297" />
+        <joint name="robot_shoulder_lift_joint" value="-1.0702" />
+        <joint name="robot_shoulder_pan_joint" value="0.0345" />
+        <joint name="robot_wrist_1_joint" value="-2.3475" />
+        <joint name="robot_wrist_2_joint" value="-1.7606" />
+        <joint name="robot_wrist_3_joint" value="0.4833" />
+    </group_state>
+    <group_state name="RAIL_ARM_WAIT" group="robot_rail">
+        <joint name="linear_actuator_carriage_joint" value="0" />
+        <joint name="robot_elbow_joint" value="1.8642" />
+        <joint name="robot_shoulder_lift_joint" value="-0.9666" />
+        <joint name="robot_shoulder_pan_joint" value="0.0345" />
+        <joint name="robot_wrist_1_joint" value="-2.4856" />
+        <joint name="robot_wrist_2_joint" value="-1.7261" />
+        <joint name="robot_wrist_3_joint" value="0.5178" />
+    </group_state>
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="break_beam_base_link" link2="depth_camera_base_link" reason="Adjacent" />
     <disable_collisions link1="break_beam_base_link" link2="linear_actuator_base_link" reason="Adjacent" />
