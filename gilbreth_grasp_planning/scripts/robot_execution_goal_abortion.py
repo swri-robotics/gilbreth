@@ -180,7 +180,7 @@ class RobotExecution:
         rospy.loginfo("Run time is %f seconds",(time.time()-start_time))
         if traj:
             if self.switch_controller(start_ctrl,stop_ctrl,1):
-                rospy.loginfo("Motion plan success")
+                #rospy.loginfo("Motion plan success")
                 return traj
         self.EXECUTE = False
         return False
@@ -190,13 +190,11 @@ class RobotExecution:
             rospy.logerr("Motion plan failed.")
             self.EXECUTE = False
         else:
-            try:
-                group.execute(traj)
-                rospy.loginfo("Moved to target pose.")
-            except:
-                rospy.loginfo("Failed to execute.")
+            if not group.execute(traj):
+                rospy.logerr("Execution failed.")
                 self.EXECUTE = False
-        print self.EXECUTE
+            else:
+                rospy.loginfo("Moved to target pose.")
         return self.EXECUTE
             
     def execute_robot(self):
@@ -255,9 +253,7 @@ class RobotExecution:
  
             self.tool_poses_list.pop(0)
             self.control_gripper(False)
-            self.EXECUTE = False
-            if not self.get_available_obj():
-                self.goto_waiting_pose()
+            self.EXECUTE = False        
 
 def main(args):
     moveit_commander.roscpp_initialize(sys.argv)
