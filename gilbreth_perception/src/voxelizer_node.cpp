@@ -21,7 +21,7 @@
 #include <vector>
 
 // Algorithm params
-static const int voxel_grid_size = 32;
+static const int VOXEL_GRID_SIZE = 32;
 
 ros::Publisher pub;
 
@@ -51,12 +51,12 @@ const unsigned int getLinearIndex(const Voxel &voxel, const int grid_size) {
   return voxel.x * (grid_size * grid_size) + voxel.z * grid_size + voxel.y;
 }
 
-const Voxel getGridIndex(const pcl::PointXYZ &point, const pcl::PointXYZ &translate, const uint voxel_grid_size, const float scale) {
+const Voxel getGridIndex(const pcl::PointXYZ &point, const pcl::PointXYZ &translate, const uint VOXEL_GRID_SIZE, const float scale) {
   // Needs to be signed to prevent overflow, because index can
   // be slightly negative which then gets rounded to zero.
-  const int i = std::round(static_cast<float>(voxel_grid_size) * ((point.x - translate.x) / scale) - 0.5);
-  const int j = std::round(static_cast<float>(voxel_grid_size) * ((point.y - translate.y) / scale) - 0.5);
-  const int k = std::round(static_cast<float>(voxel_grid_size) * ((point.z - translate.z) / scale) - 0.5);
+  const int i = std::round(static_cast<float>(VOXEL_GRID_SIZE) * ((point.x - translate.x) / scale) - 0.5);
+  const int j = std::round(static_cast<float>(VOXEL_GRID_SIZE) * ((point.y - translate.y) / scale) - 0.5);
+  const int k = std::round(static_cast<float>(VOXEL_GRID_SIZE) * ((point.z - translate.z) / scale) - 0.5);
   return Voxel(i, j, k);
 }
 
@@ -97,10 +97,10 @@ void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   const float z_range = max_point.z - min_point.z;
 
   const float max_cloud_extent = std::max(std::max(x_range, y_range), z_range);
-  const float voxel_size = max_cloud_extent / (static_cast<float>(voxel_grid_size) - 1.0);
-  std::cout << "voxel_size = " << voxel_size << std::endl;
+  const float voxel_size = max_cloud_extent / (static_cast<float>(VOXEL_GRID_SIZE) - 1.0);
+  ROS_INFO("voxel size is %f", voxel_size);
 
-  const float scale = (static_cast<float>(voxel_grid_size) * max_cloud_extent) / (static_cast<float>(voxel_grid_size) - 1.0);
+  const float scale = (static_cast<float>(VOXEL_GRID_SIZE) * max_cloud_extent) / (static_cast<float>(VOXEL_GRID_SIZE) - 1.0);
 
   // Calculate the PointCloud's translation from the origin.
   // We need to subtract half the voxel size, because points
@@ -121,13 +121,13 @@ void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   }
   const pcl::PointXYZ translate(tx, ty, tz);
 
-  const unsigned int num_voxels = voxel_grid_size * voxel_grid_size * voxel_grid_size;
+  const unsigned int num_voxels = std::pow(VOXEL_GRID_SIZE,3);
 
   // Voxelize the PointCloud into a linear array
   boost::dynamic_bitset<> voxels_bitset(num_voxels);
   for (pcl::PointCloud<pcl::PointXYZ>::iterator it = scene->begin(); it != scene->end(); ++it) {
-    const Voxel voxel = getGridIndex(*it, translate, voxel_grid_size, scale);
-    const unsigned int idx = getLinearIndex(voxel, voxel_grid_size);
+    const Voxel voxel = getGridIndex(*it, translate, VOXEL_GRID_SIZE, scale);
+    const unsigned int idx = getLinearIndex(voxel, VOXEL_GRID_SIZE);
     voxels_bitset[idx] = 1;
   }
   gilbreth_msgs::ObjectVoxel voxel_data;
@@ -139,15 +139,15 @@ void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   dat.layout.dim[0].label = "x";
   dat.layout.dim[1].label = "y";
   dat.layout.dim[2].label = "z";
-  dat.layout.dim[0].size = voxel_grid_size;
-  dat.layout.dim[1].size = voxel_grid_size;
-  dat.layout.dim[2].size = voxel_grid_size;
-  dat.layout.dim[0].stride = voxel_grid_size * voxel_grid_size * voxel_grid_size;
-  dat.layout.dim[1].stride = voxel_grid_size * voxel_grid_size;
-  dat.layout.dim[1].stride = voxel_grid_size;
+  dat.layout.dim[0].size = VOXEL_GRID_SIZE;
+  dat.layout.dim[1].size = VOXEL_GRID_SIZE;
+  dat.layout.dim[2].size = VOXEL_GRID_SIZE;
+  dat.layout.dim[0].stride = VOXEL_GRID_SIZE * VOXEL_GRID_SIZE * VOXEL_GRID_SIZE;
+  dat.layout.dim[1].stride = VOXEL_GRID_SIZE * VOXEL_GRID_SIZE;
+  dat.layout.dim[1].stride = VOXEL_GRID_SIZE;
   dat.layout.data_offset = 0;
-  std::vector<int> vec(voxel_grid_size * voxel_grid_size * voxel_grid_size, 0);
-  for (int i = 0; i < voxel_grid_size * voxel_grid_size * voxel_grid_size; i++)
+  std::vector<int> vec(VOXEL_GRID_SIZE * VOXEL_GRID_SIZE * VOXEL_GRID_SIZE, 0);
+  for (int i = 0; i < VOXEL_GRID_SIZE * VOXEL_GRID_SIZE * VOXEL_GRID_SIZE; i++)
     vec[i] = voxels_bitset[i];
   dat.data = vec;
   voxel_data.voxel = dat;
