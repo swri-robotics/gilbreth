@@ -21,7 +21,10 @@
 #include <vector>
 
 // Algorithm params
-static const int VOXEL_GRID_SIZE = 32;
+static const unsigned int VOXEL_GRID_SIZE = 32;
+static const unsigned int VOXEL_SQUARE = std::pow(VOXEL_GRID_SIZE,2);
+static const unsigned int VOXEL_CUBE = std::pow(VOXEL_GRID_SIZE,3);
+
 
 ros::Publisher pub;
 
@@ -121,10 +124,8 @@ void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   }
   const pcl::PointXYZ translate(tx, ty, tz);
 
-  const unsigned int num_voxels = std::pow(VOXEL_GRID_SIZE,3);
-
   // Voxelize the PointCloud into a linear array
-  boost::dynamic_bitset<> voxels_bitset(num_voxels);
+  boost::dynamic_bitset<> voxels_bitset(VOXEL_CUBE);
   for (pcl::PointCloud<pcl::PointXYZ>::iterator it = scene->begin(); it != scene->end(); ++it) {
     const Voxel voxel = getGridIndex(*it, translate, VOXEL_GRID_SIZE, scale);
     const unsigned int idx = getLinearIndex(voxel, VOXEL_GRID_SIZE);
@@ -142,12 +143,12 @@ void cloudCb(const sensor_msgs::PointCloud2ConstPtr &cloud_msg) {
   dat.layout.dim[0].size = VOXEL_GRID_SIZE;
   dat.layout.dim[1].size = VOXEL_GRID_SIZE;
   dat.layout.dim[2].size = VOXEL_GRID_SIZE;
-  dat.layout.dim[0].stride = VOXEL_GRID_SIZE * VOXEL_GRID_SIZE * VOXEL_GRID_SIZE;
-  dat.layout.dim[1].stride = VOXEL_GRID_SIZE * VOXEL_GRID_SIZE;
+  dat.layout.dim[0].stride = VOXEL_CUBE;
+  dat.layout.dim[1].stride = VOXEL_SQUARE;
   dat.layout.dim[1].stride = VOXEL_GRID_SIZE;
   dat.layout.data_offset = 0;
-  std::vector<int> vec(VOXEL_GRID_SIZE * VOXEL_GRID_SIZE * VOXEL_GRID_SIZE, 0);
-  for (int i = 0; i < VOXEL_GRID_SIZE * VOXEL_GRID_SIZE * VOXEL_GRID_SIZE; i++)
+  std::vector<int> vec(VOXEL_CUBE, 0);
+  for (int i = 0; i < VOXEL_CUBE; i++)
     vec[i] = voxels_bitset[i];
   dat.data = vec;
   voxel_data.voxel = dat;
