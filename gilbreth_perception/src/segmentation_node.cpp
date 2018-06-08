@@ -163,6 +163,5 @@ int main(int argc, char **argv) {
   ROS_INFO("Segmentation Node subscribed to %s",pub.getTopic().c_str());
   ROS_INFO("Segmentation Node Ready ...");
   // Spin
-
   ros::spin();
 }

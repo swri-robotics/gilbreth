@@ -4,6 +4,7 @@
   <!-- general arguments -->
   <arg name="spawn_window" default="True"/>  
   <arg name="xterm_cmd" default="xterm -e"/>
+  <arg name="cnn" default="True"/>
 
   <!-- Default argments -->
   <arg name="gnome_term_cmd" value="gnome-terminal --command"/>
@@ -20,6 +21,7 @@
   <!-- Perception -->
   <include file="$(find gilbreth_perception)/launch/gilbreth_perception.launch">
     <arg name="spawn_window" value="$(arg spawn_window)"/>
+    <arg name="cnn" value="$(arg cnn)"/>
   </include>
 
   <!-- Run -->

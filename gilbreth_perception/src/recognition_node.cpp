@@ -354,8 +354,7 @@ public:
     }
 
     else {
-      ROS_INFO_STREAM("Using Correspondence Grouping");
-
+      //ROS_INFO_STREAM("Using Correspondence Grouping");
       // Extract Scene Keypoint
       pcl::UniformSampling<PointType> uniform_sampling;
       pcl::PointCloud<PointType>::Ptr scene_keypoints(new pcl::PointCloud<PointType>());
