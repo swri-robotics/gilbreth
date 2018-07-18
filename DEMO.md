@@ -7,7 +7,7 @@
 ### Application Bringup
 1. Bring up the application components
   ```
-  roslaunch gilbreth_application application_setup.launch
+  roslaunch gilbreth_application application_setup.launch rviz:=true
   ```
   - Both Gazebo and Rviz will be launched, wait until both of these application have started before moving on 
     to the next step. 
@@ -35,6 +35,10 @@
   - The conveyor will begin moving and parts will appear at random intervals.
   - This step will also bring up the individual nodes for tool planning, trajectory planning, 
     perception and robot execution, each in its own terminal window (don't close the windows).
+  - The connection between the linear carriage that carries the arm and the rail that it travels along can 
+    sometimes spawn in a disconnected state (the arm does not move back and forth along the rail). 
+      - Test this by moving the arm to a new position in rviz then executing the new pose. 
+      - If the linear motion does not work, re-launch the setup node until this does work.
 
 ### Launch node seperately (Outdated):
 
