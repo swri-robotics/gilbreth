@@ -5,9 +5,10 @@ Robotic product handling simulation
 
 ## Getting Started
 
-The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin tools. Links to the instructions for installing ROS, Gazebo, etc. are provided below
+The project is based on Ubuntu 16.04, ROS Kinetic, gazebo 7.0, wstool and catkin tools. Links to the instructions for installing ROS, Gazebo, etc. are provided below
 - [Install ROS](http://wiki.ros.org/kinetic/Installation/Ubuntu)
 - [Install gazebo 7.0](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
+	-Note: This may already be installed with ROS, do not overwrite gazebo 7.0 if it is already on your system
 - [Install wstool](http://wiki.ros.org/wstool#Installation)
 - [Install catkin-tools](http://catkin-tools.readthedocs.io/en/latest/installing.html)
 
@@ -43,10 +44,10 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 ## Visualize The Simulation Enviroment
 
 ### Setup
-- Source the catkin workspace 
+- Source the gilbreth workspace 
 
 	```
-	cd ~/catkin_ws
+	cd ~/gilbreth_ws
 	source devel/setup.bash
 	```
 
@@ -68,7 +69,7 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 	```
   	roscd gilbreth_gazebo
   	source scripts/env_setup.bash
-	roslaunch gilbreth_gazebo gilbreth.launch rviz:=false
+	roslaunch gilbreth_gazebo gilbreth_environment.launch rviz:=false
 	```
 
   	- The **source scripts/env_setup.bash** command sets up environment variables needed
