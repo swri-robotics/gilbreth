@@ -67,12 +67,9 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 
 	```
   	roscd gilbreth_gazebo
-  	source scripts/env_setup.bash
-	roslaunch gilbreth_gazebo gilbreth.launch rviz:=false
+	roslaunch gilbreth_gazebo gilbreth_environment.launch rviz:=false
 	```
 
-  	- The **source scripts/env_setup.bash** command sets up environment variables needed
-  	by the gazebo simulator.  
     - Use "rviz:=true" to show rviz
   	
 1. Activate the gripper:
