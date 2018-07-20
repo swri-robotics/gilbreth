@@ -10,6 +10,8 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 - [Install gazebo 7.0](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
 - [Install wstool](http://wiki.ros.org/wstool#Installation)
 - [Install catkin-tools](http://catkin-tools.readthedocs.io/en/latest/installing.html)
+- [Install python-kitch](https://pypi.org/project/kitchen/#description)
+	sudo apt-get install python-kitchen
 
 ### Installation
 - Source the ROS environment script
