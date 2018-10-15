@@ -3,12 +3,18 @@ For using Correspondence Grouping method in object recognition:
 
 For using convolutional neural network method in object recognition:
 1. Make sure your computer has Nvidia GPU;
+    lspci | grep VGA
+    
 2. Install voxnet at https://github.com/dimatura/voxnet;
 - Install all dependent packages
-    Theano http://deeplearning.net/software/theano/
-    Lasagne https://github.com/Lasagne/Lasagne
+    Theano version 0.7 http://deeplearning.net/software/theano/
+        pip install Theano==0.7 pygpu
+    Lasagne version 0.1 https://github.com/Lasagne/Lasagne
+        pip install Lasagne==0.1
     path.py https://github.com/jaraco/path.py
+        pip install path.py
     scikit-learn http://scikit-learn.org/stable/install.html
+        pip install -U scikit-learn
 - Install voxnet by:
     git clone https://github.com/dimatura/voxnet.git
     cd voxnet
