@@ -46,7 +46,7 @@ The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin 
 - Source the catkin workspace 
 
 	```
-	cd ~/catkin_ws
+	cd ~/gilbreth_ws
 	source devel/setup.bash
 	```
 
