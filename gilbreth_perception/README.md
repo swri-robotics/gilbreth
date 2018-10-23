@@ -5,6 +5,9 @@ For using convolutional neural network method in object recognition:
 1. Make sure your computer has Nvidia GPU;
     lspci | grep VGA
     
+   If you have an Nvidia GPU there will be an entry like this:
+   02:00.0 VGA compatible controller: NVIDIA Corporation GM107GL [Quadro K620] (rev a2)
+   
 2. Install voxnet at https://github.com/dimatura/voxnet;
 - Install all dependent packages
     Theano version 0.7 http://deeplearning.net/software/theano/
