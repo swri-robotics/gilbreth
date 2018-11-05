@@ -15,6 +15,7 @@
 2. Verify robot controller
   Run the robot execution node and verify that the robot arm and rail joint are moved to the home position
   ```
+  pip install kitchen
   rosrun gilbreth_grasp_planning test_robot_execution.py
   ```
   - If the robot failed to move then start again from step *1*.
@@ -36,6 +37,8 @@
   - This step will also bring up the individual nodes for tool planning, trajectory planning, 
     perception and robot execution, each in its own terminal window (don't close the windows).
 
+- Run the CNN script in a new window as follows:
+  THEANO_FLAGS='floatX=float32' rosrun gilbreth_perception recognition_cnn.py
 ### Launch node seperately (Outdated):
 
 The script will run object_recognition, tool_planning, trajectory_planning and robot_execution nodes seperately.
