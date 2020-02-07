@@ -17,6 +17,7 @@
   <depend>moveit_commander</depend>
   <depend>moveit_msgs</depend>
   <depend>tf</depend>
+  <depend>eigen_conversions</depend>
   <depend>gilbreth_msgs</depend>
   <depend>gilbreth_gazebo</depend>
   <depend>controller_manager_msgs</depend>

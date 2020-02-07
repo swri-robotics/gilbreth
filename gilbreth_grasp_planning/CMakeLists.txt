@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   std_srvs
   tf
+  eigen_conversions
   geometry_msgs
   moveit_msgs
   moveit_commander
@@ -27,6 +28,7 @@ catkin_package(
     std_msgs
     std_srvs
     tf
+    eigen_conversions
     geometry_msgs
     moveit_msgs
     moveit_commander

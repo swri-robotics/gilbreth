@@ -94,7 +94,7 @@ void ROSProximityRayPlugin::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sd
 // Update the controller
 void ROSProximityRayPlugin::OnNewLaserScans()
 {
-  auto now = this->world->GetSimTime();
+  auto now = this->world->SimTime();
   bool stateChanged = this->ProcessScan();
   this->state_msg.header.stamp.sec = now.sec;
   this->state_msg.header.stamp.nsec = now.nsec;

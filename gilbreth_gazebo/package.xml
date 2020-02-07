@@ -17,6 +17,7 @@
   <depend>gazebo_msgs</depend>
   <depend>gazebo_plugins</depend>
   <depend>gazebo_ros</depend>
+  <depend>gazebo_dev</depend>
   <depend>geometry_msgs</depend>
   <depend>roscpp</depend>
   <depend>std_msgs</depend>

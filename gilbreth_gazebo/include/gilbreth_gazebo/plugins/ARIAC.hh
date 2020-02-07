@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <gazebo/gazebo.hh>
+#include <ignition/math/Pose3.hh>
 
 namespace ariac
 {
@@ -277,7 +278,7 @@ namespace ariac
     public: bool isFaulty;
 
     /// \brief Pose in which the object should be placed.
-    public: math::Pose pose;
+    public: ignition::math::Pose3d pose;
 
   };
 

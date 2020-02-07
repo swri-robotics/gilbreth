@@ -33,7 +33,7 @@ GZ_REGISTER_MODEL_PLUGIN(ConveyorBeltPlugin)
 /////////////////////////////////////////////////
 ConveyorBeltPlugin::~ConveyorBeltPlugin()
 {
-  event::Events::DisconnectWorldUpdateBegin(this->updateConnection);
+  this->updateConnection.reset();
 }
 
 /////////////////////////////////////////////////
@@ -66,7 +66,7 @@ void ConveyorBeltPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 
   auto worldPtr = gazebo::physics::get_world();
   this->link = boost::static_pointer_cast<physics::Link>(
-    worldPtr->GetEntity(linkName));
+    worldPtr->EntityByName(linkName));
   if (!this->link)
   {
     gzerr << "Link not found" << std::endl;
@@ -83,7 +83,7 @@ void ConveyorBeltPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   }
 
   // Set the point where the link will be moved to its starting pose.
-  this->limit = this->joint->GetUpperLimit(0) - 0.6;
+  this->limit = this->joint->UpperLimit() - 0.6;
 
   // Initialize Gazebo transport
   this->gzNode = transport::NodePtr(new transport::Node());
@@ -108,7 +108,7 @@ void ConveyorBeltPlugin::OnUpdate()
   this->joint->SetVelocity(0, this->beltVelocity);
 
   // Reset the belt.
-  if (this->joint->GetAngle(0) >= this->limit)
+  if (this->joint->Position(0) >= this->limit())
   {
     // Warning: Megahack!!
     // We should use "this->joint->SetPosition(0, 0)" here but I found that
@@ -116,8 +116,8 @@ void ConveyorBeltPlugin::OnUpdate()
     // found an incorrect value in childLinkPose within
     // Joint::SetPositionMaximal(). This workaround makes sure that the right
     // numbers are always used in our scenario.
-    const math::Pose childLinkPose(1.20997, 2.5998, 0.8126, 0, 0, -1.57);
-    const math::Pose newChildLinkPose(1.20997, 2.98, 0.8126, 0, 0, -1.57);
+    const ignition::math::Pose3d childLinkPose(1.20997, 2.5998, 0.8126, 0, 0, -1.57);
+    const ignition::math::Pose3d newChildLinkPose(1.20997, 2.98, 0.8126, 0, 0, -1.57);
     this->link->MoveFrame(childLinkPose, newChildLinkPose);
   }
 }

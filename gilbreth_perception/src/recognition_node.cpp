@@ -227,9 +227,7 @@ public:
       pcl::PointCloud<PointType>::Ptr model_keypoints(new pcl::PointCloud<PointType>());
       uniform_sampling.setInputCloud(model_list[i]);
       uniform_sampling.setRadiusSearch(key_point_sampling);
-      pcl::PointCloud<int> keypointIndices1;
-      uniform_sampling.compute(keypointIndices1);
-      pcl::copyPointCloud(*model_list[i], keypointIndices1.points, *model_keypoints);
+      uniform_sampling.filter(*model_keypoints);
       model_keypoints_list.push_back(model_keypoints);
     }
 
@@ -360,9 +358,7 @@ public:
       pcl::PointCloud<PointType>::Ptr scene_keypoints(new pcl::PointCloud<PointType>());
       uniform_sampling.setInputCloud(scene);
       uniform_sampling.setRadiusSearch(key_point_sampling);
-      pcl::PointCloud<int> keypointIndices1;
-      uniform_sampling.compute(keypointIndices1);
-      pcl::copyPointCloud(*scene, keypointIndices1.points, *scene_keypoints);
+      uniform_sampling.filter(*scene_keypoints);
 
       //Compute Descriptor
       pcl::SHOTEstimationOMP<PointType, NormalType, pcl::SHOT352> descr_est;

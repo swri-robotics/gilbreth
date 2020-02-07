@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5.2)
 project(gilbreth_gazebo)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 #if(NOT WIN32)
 #  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall -Wextra")
@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   gazebo_msgs
   gazebo_plugins
+  gazebo_dev
   gazebo_ros
   geometry_msgs
   message_generation
@@ -22,7 +23,13 @@ find_package(catkin REQUIRED COMPONENTS
   eigen_conversions
 )
 
+# bug in gazebo dependencies
+# See https://bitbucket.org/ignitionrobotics/ign-cmake/issues/40
+ign_import_target(UUID)
+
 find_package(gazebo REQUIRED)
+#include_directories(${GAZEBO_INCLUDE_DIRS})
+#link_directories(${GAZEBO_LIBRARY_DIRS})
 
 find_package(TinyXML REQUIRED)
 
@@ -63,6 +70,7 @@ catkin_package(
     gazebo_msgs
     gazebo_plugins
     gazebo_ros
+    gazebo_dev
     geometry_msgs
     message_runtime
     roscpp
