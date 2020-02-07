@@ -5,9 +5,9 @@ Robotic product handling simulation
 
 ## Getting Started
 
-The project is based on Ubuntu 16.04, ROS Kinect, gazebo 7.0, wstool and catkin tools. Links to the instructions for installing ROS, Gazebo, etc. are provided below
+The project is based on Ubuntu 18.04, ROS Kinect, gazebo 9.0, wstool and catkin tools. Links to the instructions for installing ROS, Gazebo, etc. are provided below
 - [Install ROS](http://wiki.ros.org/kinetic/Installation/Ubuntu)
-- [Install gazebo 7.0](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
+- [Install gazebo 9.0](http://gazebosim.org/tutorials?tut=install_ubuntu&cat=install)
 - [Install wstool](http://wiki.ros.org/wstool#Installation)
 - [Install catkin-tools](http://catkin-tools.readthedocs.io/en/latest/installing.html)
 
