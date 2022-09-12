@@ -146,7 +146,7 @@ void ObjectDisposalPlugin::ActOnContactingModels()
   auto linkBoxMin = linkBox.Min();
   linkBoxMin.Z(std::numeric_limits<double>::lowest());
   linkBoxMax.Z( std::numeric_limits<double>::max());
-  auto disposalBox = ignition::math::Box(linkBoxMin, linkBoxMax);
+  auto disposalBox = ignition::math::AxisAlignedBox(linkBoxMin, linkBoxMax);
 
 
   for (auto model : this->contactingModels) {
