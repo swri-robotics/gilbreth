@@ -79,7 +79,7 @@ namespace gazebo
               public: std::string type;
 
               /// \brief Object type.
-              public: ignition::math::Box dropRegion;
+              public: ignition::math::AxisAlignedBox dropRegion;
 
               /// \brief Destination where objects are teleported to after a drop
               public: ignition::math::Pose3d destination;
@@ -299,7 +299,7 @@ void VacuumGripperPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
       sdf::ElementPtr typeElement = dropRegionElem->GetElement("type");
       std::string type = typeElement->Get<std::string>();
 
-      ignition::math::Box dropRegion = ignition::math::Box(min, max);
+      ignition::math::AxisAlignedBox dropRegion = ignition::math::AxisAlignedBox(min, max);
       ignition::math::Pose3d destination = dstElement->Get<ignition::math::Pose3d>();
       VacuumGripperPluginPrivate::DropObject dropObject {type, dropRegion, destination};
       this->dataPtr->objectsToDrop.push_back(dropObject);

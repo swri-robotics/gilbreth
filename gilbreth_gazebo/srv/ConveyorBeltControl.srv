@@ -1,7 +1,7 @@
 # Conveyor belt control
 
 # desired conveyor belt state
-ConveyorBeltState state
+float64 power
 
 ---
 bool success

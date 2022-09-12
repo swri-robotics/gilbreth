@@ -72,7 +72,7 @@ bool ROSConveyorBeltPlugin::OnControlCommand(ros::ServiceEvent<
 {
   const gilbreth_gazebo::ConveyorBeltControl::Request& req = event.getRequest();
   gilbreth_gazebo::ConveyorBeltControl::Response& res = event.getResponse();
-  gzdbg << "Conveyor control service called with: " << req.state.power << std::endl;
+  gzdbg << "Conveyor control service called with: " << req.power << std::endl;
 
   const std::string& callerName = event.getCallerName();
   gzdbg << "Conveyor control service called by: " << callerName << std::endl;
@@ -87,7 +87,7 @@ bool ROSConveyorBeltPlugin::OnControlCommand(ros::ServiceEvent<
     res.success = false;
     return true;
   }
-  this->SetPower(req.state.power);
+  this->SetPower(req.power);
   res.success = true;
   return true;
 }

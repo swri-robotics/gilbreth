@@ -72,7 +72,7 @@ class RobotExecution:
     def moveRobot(self):      
   
       ## Motion Planning    
-      robot_traj = self.moveit_commander.plan()
+      success,robot_traj,planning_time,errcode = self.moveit_commander.plan()
       
   
       ## if trajectory is valid, move the robot
